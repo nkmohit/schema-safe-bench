@@ -1,0 +1,9 @@
+{
+  "run_id": "synthetic-format-example",
+  "method_id": "B0",
+  "tasks": 1,
+  "correct": 1,
+  "abstained": 0,
+  "invalid": 0,
+  "execution_errors": 0
+}
