@@ -1,0 +1,58 @@
+from pathlib import Path
+
+from schema_safe_bench.catalog import extract_catalog
+from schema_safe_bench.retrieval import (
+    BM25Retriever,
+    DenseRetriever,
+    HybridRetriever,
+    build_schema_documents,
+    build_schema_pack,
+    full_schema_pack,
+)
+
+
+def _embed(texts: list[str]) -> list[list[float]]:
+    return [
+        [float("customer" in text.casefold()), float("amount" in text.casefold()), 1.0]
+        for text in texts
+    ]
+
+
+def test_bm25_ranking_is_stable(sample_database: Path) -> None:
+    catalog = extract_catalog(sample_database)
+    retriever = BM25Retriever(build_schema_documents(catalog))
+    hits = retriever.retrieve("customer name", top_k=3)
+
+    assert hits[0].table_name == "customers"
+    assert [hit.rank for hit in hits] == [1, 2, 3]
+
+
+def test_dense_and_hybrid_retrieval(sample_database: Path) -> None:
+    documents = build_schema_documents(extract_catalog(sample_database))
+    lexical = BM25Retriever(documents)
+    dense = DenseRetriever(documents, _embed)
+    hybrid = HybridRetriever(lexical, dense)
+
+    dense_hits = dense.retrieve("total amount", top_k=2)
+    hybrid_hits = hybrid.retrieve("total amount", top_k=2)
+
+    assert any(hit.column_name == "amount" for hit in dense_hits)
+    assert len(hybrid_hits) == 2
+    assert set(hybrid_hits[0].component_scores) <= {"bm25", "dense"}
+
+
+def test_schema_pack_includes_join_edges(sample_database: Path) -> None:
+    catalog = extract_catalog(sample_database)
+    documents = build_schema_documents(catalog)
+    hits = BM25Retriever(documents).retrieve("customers order amount", top_k=6)
+    pack = build_schema_pack(catalog, hits)
+
+    assert {table.name for table in pack.tables} == {"customers", "orders"}
+    assert "orders.customer_id -> customers.customer_id" in pack.foreign_keys
+    assert "FK orders.customer_id" in pack.serialized
+
+
+def test_full_schema_pack_can_be_truncated(sample_database: Path) -> None:
+    pack = full_schema_pack(extract_catalog(sample_database), max_chars=20)
+    assert len(pack.serialized) == 20
+    assert len(pack.tables) == 2
