@@ -132,3 +132,95 @@ class ResultComparison(StrictModel):
     equivalent: bool
     order_sensitive: bool
     reason: str
+
+
+class SchemaDocument(StrictModel):
+    document_id: str
+    table_name: str
+    column_name: str | None = None
+    text: str
+
+
+class RetrievalHit(StrictModel):
+    document_id: str
+    table_name: str
+    column_name: str | None = None
+    score: float
+    rank: int
+    component_scores: dict[str, float] = Field(default_factory=dict)
+
+
+class SchemaPackTable(StrictModel):
+    name: str
+    columns: list[Column]
+
+
+class SchemaPack(StrictModel):
+    tables: list[SchemaPackTable]
+    foreign_keys: list[str]
+    retrieval_hits: list[RetrievalHit] = Field(default_factory=list)
+    serialized: str
+
+
+class PromptMessage(StrictModel):
+    role: Literal["system", "user"]
+    content: str
+
+
+class GenerationRequest(StrictModel):
+    messages: list[PromptMessage]
+    model_name: str
+    temperature: float = 0.0
+    max_output_tokens: int = Field(default=1000, ge=1)
+    prompt_version: str
+
+
+class GenerationResponse(StrictModel):
+    raw_output: str
+    model_name: str
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    request_elapsed_ms: float | None = None
+
+
+class Prediction(StrictModel):
+    task_id: str
+    sql: str
+    raw_output: str | None = None
+
+
+class AuditTrace(StrictModel):
+    run_id: str
+    task_id: str
+    db_id: str
+    method_id: str
+    question: str
+    candidate_sql: str
+    raw_output: str
+    repair_count: int = Field(default=0, ge=0, le=1)
+    validation: ValidationResult
+    execution: ExecutionResult
+    reference_execution: ExecutionResult
+    comparison: ResultComparison | None = None
+    failure_label: str | None = None
+
+
+class RunSummary(StrictModel):
+    run_id: str
+    method_id: str
+    tasks: int
+    correct: int
+    abstained: int
+    invalid: int
+    execution_errors: int
+
+
+class SmokeRunConfig(StrictModel):
+    run_id: str
+    method_id: str
+    tasks_path: Path
+    databases_root: Path
+    manifest_path: Path
+    predictions_path: Path
+    output_path: Path
+    execution: ExecutionLimits = Field(default_factory=ExecutionLimits)

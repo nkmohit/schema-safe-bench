@@ -5,7 +5,7 @@ Contributions should preserve reproducibility, public-data provenance, and the s
 ## Set up
 
 ```bash
-uv sync --all-extras --dev
+uv sync --dev
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest

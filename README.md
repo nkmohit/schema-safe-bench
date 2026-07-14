@@ -38,7 +38,7 @@ Requirements: Python 3.12 and [`uv`](https://docs.astral.sh/uv/).
 ```bash
 git clone git@github.com:nkmohit/schema-safe-bench.git
 cd schema-safe-bench
-uv sync --all-extras --dev
+uv sync --dev
 uv run schema-safe-bench --help
 uv run pytest
 ```
@@ -52,6 +52,12 @@ uv run schema-safe-bench run smoke --help
 ```
 
 See [data/README.md](data/README.md) for the expected BIRD layout and [docs/reproducibility.md](docs/reproducibility.md) for the complete run sequence.
+
+Install the optional dense-retrieval stack only for experiments that use a documented local embedding model:
+
+```bash
+uv sync --extra dense --dev
+```
 
 ## Methods
 

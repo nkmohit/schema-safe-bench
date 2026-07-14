@@ -4,7 +4,7 @@
 
 ```bash
 uv python install 3.12
-uv sync --all-extras --dev
+uv sync --dev
 uv run schema-safe-bench doctor
 ```
 
