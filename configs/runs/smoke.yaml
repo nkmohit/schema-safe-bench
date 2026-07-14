@@ -1,7 +1,7 @@
 run_id: bird-minidev-select-smoke-b0-offline
 method_id: B0
-tasks_path: data/raw/bird-minidev/mini_dev_sqlite.json
-databases_root: data/raw/bird-minidev/dev_databases
+tasks_path: data/raw/bird-minidev/mini_dev_data/mini_dev_sqlite.json
+databases_root: data/raw/bird-minidev/mini_dev_data/dev_databases
 manifest_path: data/processed/manifests/bird-minidev-select-smoke.json
 predictions_path: data/processed/predictions/b0-offline.json
 output_path: results/local/bird-minidev-select-smoke-b0-offline.jsonl

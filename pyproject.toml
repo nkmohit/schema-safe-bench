@@ -26,6 +26,11 @@ dependencies = [
   "typer>=0.15,<1",
 ]
 
+[project.urls]
+Homepage = "https://github.com/nkmohit/schema-safe-bench"
+Repository = "https://github.com/nkmohit/schema-safe-bench"
+Issues = "https://github.com/nkmohit/schema-safe-bench/issues"
+
 [project.optional-dependencies]
 dense = ["sentence-transformers>=3.4,<4"]
 

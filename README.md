@@ -1,5 +1,9 @@
 # SchemaSafeBench
 
+[![CI](https://github.com/nkmohit/schema-safe-bench/actions/workflows/ci.yml/badge.svg)](https://github.com/nkmohit/schema-safe-bench/actions/workflows/ci.yml)
+[![Python 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 SchemaSafeBench is a reproducible evaluation harness for one question:
 
 > Do schema retrieval, SQL validation, bounded repair, and abstention make text-to-SQL systems more dependable than direct full-schema prompting?
@@ -95,6 +99,8 @@ No benchmark performance claim is published until the corresponding configuratio
 The validator and SQLite sandbox provide defense in depth for controlled experiments. They are not a substitute for database permissions, workload isolation, query review, or production security controls. Generated SQL can execute successfully and still be semantically wrong.
 
 See [docs/safety-policy.md](docs/safety-policy.md), [SECURITY.md](SECURITY.md), and [LICENSE](LICENSE).
+
+The implementation sequence and acceptance checks are in [docs/project-plan.md](docs/project-plan.md).
 
 ## Citation
 
