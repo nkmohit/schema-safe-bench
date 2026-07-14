@@ -21,7 +21,7 @@ dependencies = [
   "pydantic>=2.10,<3",
   "pyyaml>=6.0.2,<7",
   "rank-bm25>=0.2.2,<0.3",
-  "rich>=13.9,<15",
+  "rich>=15.0.0,<16",
   "sqlglot>=26,<28",
   "typer>=0.15,<1",
 ]
