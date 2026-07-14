@@ -1,0 +1,54 @@
+# Experiment Protocol
+
+## Research question
+
+On public text-to-SQL tasks, can schema-aware retrieval plus validation and one bounded repair improve execution correctness and identifier grounding over direct full-schema prompting while preserving predictable safety and cost?
+
+## Primary task set
+
+Use the 500 high-quality SELECT-only tasks from BIRD Mini-Dev. Exclude CRUD-oriented tasks. A deterministic 20-task manifest is used for pipeline smoke testing, and every smaller run must be labelled as a sample rather than a complete benchmark result.
+
+## Controlled variables
+
+For a method comparison, keep these fixed:
+
+- task IDs and database files;
+- generator provider, exact model identifier, and sampling settings;
+- prompt contract except for the schema-context strategy under test;
+- query policy, execution limits, and evaluator;
+- random seeds and result normalization rules.
+
+The generator never receives reference SQL, reference results, or labels derived from them.
+
+## Methods
+
+The canonical method IDs are B0 through B7 as defined in the README. Dense and reranking components are optional dependencies and must record their exact model identifiers and revisions.
+
+## Required records
+
+Each task trace records:
+
+- run ID, task ID, database ID, and method ID;
+- configuration digest and software revision;
+- selected schema objects, ranks, scores, and serialized schema pack;
+- prompt-template version and model settings;
+- raw generator response and extracted candidate SQL;
+- validation findings and optional repair record;
+- execution status, result shape, and controlled error category;
+- equivalence outcome and failure label;
+- token usage, request latency, and estimated cost when provided.
+
+## Metrics
+
+The primary metric is execution accuracy: candidate and reference queries produce equivalent results on the same database under the declared comparison policy.
+
+Reliability metrics include identifier-validity rate, schema-evidence recall and precision, policy-violation rate, repair gain, abstention precision and coverage, execution-error rate, prompt tokens, request latency distribution, and estimated cost.
+
+## Result integrity
+
+- Preserve raw model output before extraction or repair.
+- Append traces; do not silently overwrite prior runs.
+- Record exclusions and failed requests rather than dropping them.
+- Separate implementation debugging from outcome-driven prompt tuning.
+- Publish negative and mixed findings.
+- Do not compare with external scores unless dataset version, task subset, execution engine, and evaluator protocol match.
