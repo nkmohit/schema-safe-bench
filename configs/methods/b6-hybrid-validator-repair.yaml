@@ -1,0 +1,14 @@
+method_id: B6
+schema_context:
+  strategy: hybrid
+  top_k: 12
+  lexical_weight: 0.5
+  dense_weight: 0.5
+reliability:
+  validate: true
+  max_repairs: 1
+  allow_abstain: true
+execution:
+  row_limit: 1000
+  vm_step_budget: 1000000
+  progress_interval: 1000

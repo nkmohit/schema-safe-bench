@@ -1,7 +1,7 @@
 """Shared, serializable benchmark models."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -92,3 +92,43 @@ class Catalog(StrictModel):
     @classmethod
     def with_relative_path(cls, *, path: Path, db_id: str, tables: list[Table]) -> "Catalog":
         return cls(db_id=db_id, database_path=path.name, tables=tables)
+
+
+class ValidationIssue(StrictModel):
+    code: str
+    message: str
+    identifier: str | None = None
+
+
+class ValidationResult(StrictModel):
+    status: Literal["valid", "invalid", "abstain"]
+    normalized_sql: str | None = None
+    issues: list[ValidationIssue] = Field(default_factory=list)
+    referenced_tables: list[str] = Field(default_factory=list)
+    referenced_columns: list[str] = Field(default_factory=list)
+
+    @property
+    def accepted(self) -> bool:
+        return self.status == "valid" and self.normalized_sql is not None
+
+
+class ExecutionLimits(StrictModel):
+    row_limit: int = Field(default=1000, ge=1, le=100_000)
+    vm_step_budget: int = Field(default=1_000_000, ge=1_000)
+    progress_interval: int = Field(default=1_000, ge=1)
+
+
+class ExecutionResult(StrictModel):
+    status: Literal["success", "error", "interrupted", "rejected"]
+    columns: list[str] = Field(default_factory=list)
+    rows: list[list[Any]] = Field(default_factory=list)
+    truncated: bool = False
+    elapsed_ms: float | None = None
+    error_type: str | None = None
+    error_message: str | None = None
+
+
+class ResultComparison(StrictModel):
+    equivalent: bool
+    order_sensitive: bool
+    reason: str
