@@ -6,12 +6,11 @@ Downloaded benchmark assets are intentionally excluded from Git.
 
 ```text
 data/raw/bird-minidev/
-└── mini_dev_data/
-    ├── mini_dev_sqlite.json
-    ├── dev_databases/
-    │   └── <db_id>/
-    │       └── <db_id>.sqlite
-    └── dev_tables.json
+├── mini_dev_sqlite.json
+├── dev_databases/
+│   └── <db_id>/
+│       └── <db_id>.sqlite
+└── dev_tables.json
 ```
 
 Upstream releases may use different filenames. The CLI accepts explicit task and database paths so preparation does not depend on one archive layout.
@@ -24,9 +23,22 @@ The official project points new users to its complete package and documents the 
 uv run python scripts/prepare_bird_minidev.py \
   --archive /path/to/official-package.zip \
   --sha256 <verified-sha256> \
-  --destination data/raw/bird-minidev
+  --destination data/raw/bird-minidev \
+  --prefix minidev/MINIDEV
 ```
 
-The preparation helper does not bypass upstream access controls, infer a mutable download URL, or redistribute the dataset. Record the source URL, source revision, and digest alongside local experiment metadata.
+The prefix selects the SQLite benchmark subtree and omits unrelated database-engine dumps. Replace the extracted task JSON with the revision-pinned Hugging Face SQLite task file when following the repository's recorded provenance. The preparation helper does not bypass upstream access controls, infer a mutable download URL, or redistribute the dataset.
 
 Only SELECT-only tasks belong in the primary protocol. Keep CRUD tasks in a separate local path and configuration.
+
+## Verify the committed manifest
+
+```bash
+uv run schema-safe-bench dataset verify \
+  --tasks data/raw/bird-minidev/mini_dev_sqlite.json \
+  --databases data/raw/bird-minidev/dev_databases \
+  --manifest data/processed/manifests/bird-minidev-select-smoke.json \
+  --output data/processed/manifests/bird-minidev-select-smoke-verification.json
+```
+
+The verification report stores task IDs and status metadata, never database result rows.

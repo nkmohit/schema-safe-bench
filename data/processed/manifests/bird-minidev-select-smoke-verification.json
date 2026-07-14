@@ -1,0 +1,191 @@
+{
+  "dataset": "bird-minidev-select",
+  "dataset_revision": "f65faf4ae3b638c1fa6df1d3370c8d92c8366301",
+  "manifest_seed": 2026,
+  "task_count": 20,
+  "database_count": 10,
+  "passed_tasks": 20,
+  "failed_tasks": 0,
+  "checks": [
+    {
+      "task_id": "1028",
+      "db_id": "european_football_2",
+      "catalog_tables": 7,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "24",
+      "db_id": "california_schools",
+      "catalog_tables": 3,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": true,
+      "issue_codes": []
+    },
+    {
+      "task_id": "1351",
+      "db_id": "student_club",
+      "catalog_tables": 8,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "244",
+      "db_id": "toxicology",
+      "catalog_tables": 4,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "1155",
+      "db_id": "thrombosis_prediction",
+      "catalog_tables": 3,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "740",
+      "db_id": "superhero",
+      "catalog_tables": 10,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "116",
+      "db_id": "financial",
+      "catalog_tables": 8,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "459",
+      "db_id": "card_games",
+      "catalog_tables": 6,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "226",
+      "db_id": "toxicology",
+      "catalog_tables": 4,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "898",
+      "db_id": "formula_1",
+      "catalog_tables": 13,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "1464",
+      "db_id": "student_club",
+      "catalog_tables": 8,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "1185",
+      "db_id": "thrombosis_prediction",
+      "catalog_tables": 3,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "1042",
+      "db_id": "european_football_2",
+      "catalog_tables": 7,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "414",
+      "db_id": "card_games",
+      "catalog_tables": 6,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "800",
+      "db_id": "superhero",
+      "catalog_tables": 10,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "637",
+      "db_id": "codebase_community",
+      "catalog_tables": 8,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "47",
+      "db_id": "california_schools",
+      "catalog_tables": 3,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "218",
+      "db_id": "toxicology",
+      "catalog_tables": 4,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "1389",
+      "db_id": "student_club",
+      "catalog_tables": 8,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    },
+    {
+      "task_id": "1139",
+      "db_id": "european_football_2",
+      "catalog_tables": 7,
+      "validation_status": "valid",
+      "execution_status": "success",
+      "truncated": false,
+      "issue_codes": []
+    }
+  ]
+}

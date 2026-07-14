@@ -1,8 +1,8 @@
 dataset: bird-minidev-select
-tasks_path: data/raw/bird-minidev/mini_dev_data/mini_dev_sqlite.json
-databases_root: data/raw/bird-minidev/mini_dev_data/dev_databases
-schema_metadata_path: data/raw/bird-minidev/mini_dev_data/dev_tables.json
-dataset_revision: RECORD_UPSTREAM_REVISION
+tasks_path: data/raw/bird-minidev/mini_dev_sqlite.json
+databases_root: data/raw/bird-minidev/dev_databases
+schema_metadata_path: data/raw/bird-minidev/dev_tables.json
+dataset_revision: f65faf4ae3b638c1fa6df1d3370c8d92c8366301
 select_only: true
 manifest_path: data/processed/manifests/bird-minidev-select-smoke.json
 manifest_seed: 2026

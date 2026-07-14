@@ -23,6 +23,11 @@ def validator(sample_database: Path) -> SqlValidator:
             "WITH totals AS (SELECT customer_id, SUM(amount) AS total FROM orders "
             "GROUP BY customer_id) SELECT customer_id, total FROM totals"
         ),
+        (
+            "SELECT c.name FROM customers AS c JOIN "
+            "(SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id) AS totals "
+            "ON c.customer_id = totals.customer_id"
+        ),
         "SELECT 1",
     ],
 )
@@ -40,6 +45,10 @@ def test_validator_accepts_read_queries(validator: SqlValidator, sql: str) -> No
         ("SELECT * FROM missing", "unknown_table"),
         ("SELECT missing FROM orders", "unknown_column"),
         ("SELECT x.amount FROM orders", "unknown_qualifier"),
+        (
+            "SELECT totals.missing FROM (SELECT customer_id FROM orders) AS totals",
+            "unknown_column",
+        ),
         ("SELECT load_extension('x')", "blocked_function"),
         ("", "empty_query"),
     ],

@@ -7,7 +7,14 @@ from typing import Annotated
 import typer
 
 from schema_safe_bench.catalog import extract_catalog, write_catalog
-from schema_safe_bench.datasets import build_manifest, load_bird_tasks, write_manifest
+from schema_safe_bench.datasets import (
+    build_manifest,
+    load_bird_tasks,
+    verify_bird_assets,
+    write_asset_verification,
+    write_manifest,
+)
+from schema_safe_bench.models import ExecutionLimits
 from schema_safe_bench.runner import run_and_write
 
 app = typer.Typer(no_args_is_help=True, help="Schema-grounded text-to-SQL evaluation.")
@@ -58,6 +65,31 @@ def create_manifest(
     manifest = build_manifest(normalized, count=count, seed=seed, dataset_revision=revision)
     write_manifest(manifest, output)
     typer.echo(f"Wrote {len(manifest.task_ids)} task IDs to {output}")
+
+
+@dataset_app.command("verify")
+def verify_dataset(
+    tasks: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    databases: Annotated[Path, typer.Option(exists=True, file_okay=False, readable=True)],
+    manifest: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    output: Annotated[Path, typer.Option(dir_okay=False)],
+    row_limit: Annotated[int, typer.Option(min=1, max=100_000)] = 1000,
+    vm_step_budget: Annotated[int, typer.Option(min=1000)] = 10_000_000,
+) -> None:
+    """Verify catalogs and reference execution for a committed task manifest."""
+    report = verify_bird_assets(
+        tasks_path=tasks,
+        databases_root=databases,
+        manifest_path=manifest,
+        limits=ExecutionLimits(row_limit=row_limit, vm_step_budget=vm_step_budget),
+    )
+    write_asset_verification(report, output)
+    typer.echo(
+        f"Verified {report.passed_tasks}/{report.task_count} tasks "
+        f"across {report.database_count} databases"
+    )
+    if report.failed_tasks:
+        raise typer.Exit(code=1)
 
 
 @catalog_app.command("build")

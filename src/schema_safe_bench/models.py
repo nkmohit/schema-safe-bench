@@ -224,3 +224,28 @@ class SmokeRunConfig(StrictModel):
     predictions_path: Path
     output_path: Path
     execution: ExecutionLimits = Field(default_factory=ExecutionLimits)
+
+
+class AssetTaskCheck(StrictModel):
+    task_id: str
+    db_id: str
+    catalog_tables: int
+    validation_status: Literal["valid", "invalid", "abstain"]
+    execution_status: Literal["success", "error", "interrupted", "rejected"]
+    truncated: bool
+    issue_codes: list[str] = Field(default_factory=list)
+
+    @property
+    def passed(self) -> bool:
+        return self.validation_status == "valid" and self.execution_status == "success"
+
+
+class AssetVerificationReport(StrictModel):
+    dataset: str
+    dataset_revision: str
+    manifest_seed: int
+    task_count: int
+    database_count: int
+    passed_tasks: int
+    failed_tasks: int
+    checks: list[AssetTaskCheck]

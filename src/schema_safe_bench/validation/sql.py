@@ -85,7 +85,7 @@ class SqlValidator:
             table = self._tables[table_name.casefold()]
             available_columns[table_name].update(column.name.casefold() for column in table.columns)
 
-        cte_columns = self._cte_output_columns(statement)
+        virtual_columns = self._virtual_output_columns(statement)
         select_aliases = {
             expression.alias.casefold()
             for select in statement.find_all(exp.Select)
@@ -98,8 +98,8 @@ class SqlValidator:
             if name == "*":
                 continue
             qualifier = column.table.casefold() if column.table else None
-            if qualifier in cte_names:
-                if cte_columns.get(qualifier) and name.casefold() not in cte_columns[qualifier]:
+            if qualifier in virtual_columns:
+                if virtual_columns[qualifier] and name.casefold() not in virtual_columns[qualifier]:
                     issues.append(self._unknown_column(name, column.table))
                 continue
             if qualifier:
@@ -144,7 +144,7 @@ class SqlValidator:
         )
 
     @staticmethod
-    def _cte_output_columns(statement: exp.Expression) -> dict[str, set[str]]:
+    def _virtual_output_columns(statement: exp.Expression) -> dict[str, set[str]]:
         output: dict[str, set[str]] = {}
         for cte in statement.find_all(exp.CTE):
             name = cte.alias_or_name.casefold()
@@ -155,6 +155,16 @@ class SqlValidator:
             query = cte.this
             output[name] = {
                 column.casefold() for column in query.named_selects if column and column != "*"
+            }
+        for subquery in statement.find_all(exp.Subquery):
+            name = subquery.alias_or_name.casefold()
+            if not name:
+                continue
+            explicit = {column.casefold() for column in subquery.alias_column_names}
+            output[name] = explicit or {
+                column.casefold()
+                for column in subquery.this.named_selects
+                if column and column != "*"
             }
         return output
 

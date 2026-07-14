@@ -10,6 +10,8 @@ SchemaSafeBench targets the public BIRD Mini-Dev SELECT-only task set. Upstream 
 
 The benchmark provides SQLite databases, natural-language questions, schema metadata, and reference SQL. Upstream evidence may inform task understanding only when the experiment configuration explicitly allows it; reference SQL and results always remain evaluator-only.
 
+The selected task records are pinned to Hugging Face revision `f65faf4ae3b638c1fa6df1d3370c8d92c8366301`. Archive and task-file digests are recorded in [`data/provenance/bird-minidev.json`](../data/provenance/bird-minidev.json). The committed smoke manifest contains 20 deterministic task IDs selected with seed `2026`; its verification report confirms that every selected reference query passes the project validator and executes successfully against the prepared SQLite assets.
+
 ## Local data policy
 
 - Store downloaded assets under `data/raw/`.

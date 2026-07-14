@@ -23,8 +23,8 @@ Acceptance: a fresh checkout installs from the lockfile, the CLI starts, and CI 
 - [x] Create a deterministic task manifest independent of input ordering.
 - [x] Discover database files without path traversal.
 - [x] Extract SQLite tables, columns, primary keys, and foreign keys read-only.
-- [ ] Record the chosen upstream dataset revision and archive digest.
-- [ ] Generate the 20-task manifest from the acquired official assets.
+- [x] Record the chosen upstream dataset revision and archive digest.
+- [x] Generate the 20-task manifest from the acquired official assets.
 
 Acceptance: one command validates the task file and another produces a stable machine-readable catalog for any configured database.
 

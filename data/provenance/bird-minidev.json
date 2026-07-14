@@ -1,0 +1,17 @@
+{
+  "dataset": "BIRD Mini-Dev SELECT-only SQLite",
+  "task_records": {
+    "source": "https://huggingface.co/datasets/birdsql/bird_mini_dev",
+    "revision": "f65faf4ae3b638c1fa6df1d3370c8d92c8366301",
+    "path": "data/mini_dev_sqlite-00000-of-00001.json",
+    "sha256": "88ceb0710163cae46a256ecea8f0a8c98286599530b60587fda5c3cfe57d45d2"
+  },
+  "database_archive": {
+    "source_page": "https://github.com/bird-bench/mini_dev",
+    "google_drive_file_id": "13VLWIwpw5E3d5DUkMvzw7hvHE67a4XkG",
+    "filename": "minidev_0703.zip",
+    "size_bytes": 799944582,
+    "sha256": "aeb211c0e39010bbdae3838bb5e8bd27dc446ed77495b1709f85ccc9bf67f2be",
+    "extracted_prefix": "minidev/MINIDEV"
+  }
+}

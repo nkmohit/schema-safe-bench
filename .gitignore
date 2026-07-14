@@ -27,6 +27,9 @@ data/raw/**
 !data/raw/.gitkeep
 data/processed/**
 !data/processed/.gitkeep
+!data/processed/manifests/
+!data/processed/manifests/*.json
+data/processed/manifests/*.tmp
 *.sqlite
 *.sqlite3
 *.db
