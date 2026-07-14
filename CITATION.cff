@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use SchemaSafeBench, cite this software and the upstream benchmark dataset."
+title: "SchemaSafeBench: Reliable, Schema-Grounded Text-to-SQL Evaluation"
+type: software
+authors:
+  - family-names: "Neerukonda"
+    given-names: "Mohit"
+repository-code: "https://github.com/nkmohit/schema-safe-bench"
+license: MIT
+version: 0.1.0
+keywords:
+  - text-to-sql
+  - llm-evaluation
+  - information-retrieval
+  - database-systems
+  - reproducibility

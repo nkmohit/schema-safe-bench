@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.venv/
+.uv-cache/
+dist/
+build/
+
+# Environments and credentials
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
+
+# Downloaded benchmark assets
+data/raw/**
+!data/raw/.gitkeep
+data/processed/**
+!data/processed/.gitkeep
+*.sqlite
+*.sqlite3
+*.db
+
+# Generated runs; keep only curated samples
+results/local/**
+results/runs/**
+*.jsonl.tmp
+
+# Model and retrieval caches
+.cache/
+models/
+embeddings/

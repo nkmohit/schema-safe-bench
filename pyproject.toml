@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "schema-safe-bench"
+version = "0.1.0"
+description = "Reproducible evaluation of schema-grounded Text-to-SQL reliability"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { text = "MIT" }
+authors = [{ name = "Mohit Neerukonda" }]
+keywords = ["text-to-sql", "llm-evaluation", "retrieval", "sqlite", "benchmark"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "pydantic>=2.10,<3",
+  "pyyaml>=6.0.2,<7",
+  "rank-bm25>=0.2.2,<0.3",
+  "rich>=13.9,<15",
+  "sqlglot>=26,<28",
+  "typer>=0.15,<1",
+]
+
+[project.optional-dependencies]
+dense = ["sentence-transformers>=3.4,<4"]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+schema-safe-bench = "schema_safe_bench.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/schema_safe_bench"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers --cov=schema_safe_bench --cov-report=term-missing --cov-fail-under=85"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.format]
+quote-style = "double"
