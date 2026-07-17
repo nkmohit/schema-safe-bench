@@ -1,8 +1,7 @@
 """Deterministic result equivalence helpers."""
 
-import math
 from collections import Counter
-from typing import Any
+from typing import Literal
 
 from sqlglot import exp, parse_one
 from sqlglot.errors import ParseError
@@ -19,60 +18,57 @@ def query_is_order_sensitive(sql: str) -> bool:
     return statement.find(exp.Order) is not None or statement.find(exp.Limit) is not None
 
 
-def _value_key(value: Any) -> tuple[str, str]:
-    if value is None:
-        return ("null", "")
-    if isinstance(value, bytes):
-        return ("bytes", value.hex())
-    if isinstance(value, float):
-        if math.isnan(value):
-            return ("number", "nan")
-        if math.isinf(value):
-            return ("number", "inf" if value > 0 else "-inf")
-        return ("number", format(value, ".12g"))
-    if isinstance(value, int):
-        return ("number", str(value))
-    return (type(value).__name__, str(value))
-
-
-def _row_key(row: list[Any]) -> tuple[tuple[str, str], ...]:
-    return tuple(_value_key(value) for value in row)
-
-
 def compare_results(
     candidate: ExecutionResult,
     reference: ExecutionResult,
     *,
-    order_sensitive: bool,
+    policy: Literal["bird-execution-v1", "strict-v1"] = "bird-execution-v1",
+    order_sensitive: bool = False,
 ) -> ResultComparison:
-    """Compare successful, untruncated result sets with bag semantics by default."""
+    """Compare results under the official BIRD EX or stricter diagnostic policy."""
     if candidate.status != "success":
         return ResultComparison(
             equivalent=False,
-            order_sensitive=order_sensitive,
+            order_sensitive=order_sensitive if policy == "strict-v1" else False,
             reason=f"candidate status is {candidate.status}",
+            policy=policy,
         )
     if reference.status != "success":
         return ResultComparison(
             equivalent=False,
-            order_sensitive=order_sensitive,
+            order_sensitive=order_sensitive if policy == "strict-v1" else False,
             reason=f"reference status is {reference.status}",
+            policy=policy,
         )
     if candidate.truncated or reference.truncated:
         return ResultComparison(
             equivalent=False,
-            order_sensitive=order_sensitive,
+            order_sensitive=order_sensitive if policy == "strict-v1" else False,
             reason="truncated results are not comparable",
+            policy=policy,
         )
+
+    if policy == "bird-execution-v1":
+        equivalent = {tuple(row) for row in candidate.rows} == {
+            tuple(row) for row in reference.rows
+        }
+        return ResultComparison(
+            equivalent=equivalent,
+            order_sensitive=False,
+            reason="official BIRD result sets match" if equivalent else "result sets differ",
+            policy=policy,
+        )
+
     if len(candidate.columns) != len(reference.columns):
         return ResultComparison(
             equivalent=False,
             order_sensitive=order_sensitive,
             reason="column counts differ",
+            policy=policy,
         )
 
-    candidate_rows = [_row_key(row) for row in candidate.rows]
-    reference_rows = [_row_key(row) for row in reference.rows]
+    candidate_rows = [tuple(row) for row in candidate.rows]
+    reference_rows = [tuple(row) for row in reference.rows]
     equivalent = (
         candidate_rows == reference_rows
         if order_sensitive
@@ -82,4 +78,5 @@ def compare_results(
         equivalent=equivalent,
         order_sensitive=order_sensitive,
         reason="results match" if equivalent else "result rows differ",
+        policy=policy,
     )

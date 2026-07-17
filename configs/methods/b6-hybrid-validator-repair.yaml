@@ -9,6 +9,6 @@ reliability:
   max_repairs: 1
   allow_abstain: true
 execution:
-  row_limit: 1000
+  row_limit: 100000
   vm_step_budget: 1000000
   progress_interval: 1000

@@ -7,7 +7,7 @@ import yaml
 
 from schema_safe_bench.catalog import extract_catalog
 from schema_safe_bench.datasets import find_database, load_bird_tasks
-from schema_safe_bench.evaluation import compare_results, query_is_order_sensitive
+from schema_safe_bench.evaluation import compare_results
 from schema_safe_bench.execution import execute_read_only
 from schema_safe_bench.models import (
     AuditTrace,
@@ -80,7 +80,7 @@ def run_offline_smoke(config: SmokeRunConfig) -> tuple[list[AuditTrace], RunSumm
             comparison = compare_results(
                 execution,
                 reference_execution,
-                order_sensitive=query_is_order_sensitive(task.reference_sql),
+                policy="bird-execution-v1",
             )
             if not comparison.equivalent:
                 failure_label = "semantic_mismatch"

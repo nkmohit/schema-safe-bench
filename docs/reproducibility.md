@@ -41,6 +41,21 @@ uv run schema-safe-bench dataset verify \
 
 Every run configuration declares a task manifest, method, seed, execution limits, prompt version, and generator settings. Outputs are JSONL traces plus a summary JSON. Local runs are ignored unless deliberately curated as small examples.
 
+## Evaluator compatibility
+
+Clone and check out the revision recorded in [`data/provenance/bird-evaluator.json`](../data/provenance/bird-evaluator.json), then run:
+
+```bash
+uv run schema-safe-bench evaluation compatibility \
+  --official-checkout /tmp/bird-mini-dev-evaluator \
+  --tasks data/raw/bird-minidev/mini_dev_sqlite.json \
+  --databases data/raw/bird-minidev/dev_databases \
+  --manifest data/processed/manifests/bird-minidev-select-smoke.json \
+  --output data/processed/manifests/bird-evaluator-compatibility.json
+```
+
+The command verifies upstream source checksums before comparing the declared semantic edge cases and smoke-manifest execution paths.
+
 ## Verification
 
 ```bash

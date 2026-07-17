@@ -22,7 +22,7 @@
       "catalog_tables": 3,
       "validation_status": "valid",
       "execution_status": "success",
-      "truncated": true,
+      "truncated": false,
       "issue_codes": []
     },
     {

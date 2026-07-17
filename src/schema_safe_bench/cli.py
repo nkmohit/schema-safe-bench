@@ -14,6 +14,10 @@ from schema_safe_bench.datasets import (
     write_asset_verification,
     write_manifest,
 )
+from schema_safe_bench.evaluation import (
+    run_evaluator_compatibility,
+    write_compatibility_report,
+)
 from schema_safe_bench.models import ExecutionLimits
 from schema_safe_bench.runner import run_and_write
 
@@ -21,9 +25,11 @@ app = typer.Typer(no_args_is_help=True, help="Schema-grounded text-to-SQL evalua
 dataset_app = typer.Typer(no_args_is_help=True, help="Inspect and prepare benchmark tasks.")
 catalog_app = typer.Typer(no_args_is_help=True, help="Extract database schema catalogs.")
 run_app = typer.Typer(no_args_is_help=True, help="Run versioned evaluations.")
+evaluation_app = typer.Typer(no_args_is_help=True, help="Verify evaluation compatibility.")
 app.add_typer(dataset_app, name="dataset")
 app.add_typer(catalog_app, name="catalog")
 app.add_typer(run_app, name="run")
+app.add_typer(evaluation_app, name="evaluation")
 
 
 @app.callback()
@@ -73,7 +79,7 @@ def verify_dataset(
     databases: Annotated[Path, typer.Option(exists=True, file_okay=False, readable=True)],
     manifest: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
     output: Annotated[Path, typer.Option(dir_okay=False)],
-    row_limit: Annotated[int, typer.Option(min=1, max=100_000)] = 1000,
+    row_limit: Annotated[int, typer.Option(min=1, max=100_000)] = 100_000,
     vm_step_budget: Annotated[int, typer.Option(min=1000)] = 10_000_000,
 ) -> None:
     """Verify catalogs and reference execution for a committed task manifest."""
@@ -112,6 +118,30 @@ def run_smoke(
     traces_path, summary_path = run_and_write(config)
     typer.echo(f"Wrote traces to {traces_path}")
     typer.echo(f"Wrote summary to {summary_path}")
+
+
+@evaluation_app.command("compatibility")
+def evaluator_compatibility(
+    official_checkout: Annotated[Path, typer.Option(exists=True, file_okay=False)],
+    tasks: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    databases: Annotated[Path, typer.Option(exists=True, file_okay=False, readable=True)],
+    manifest: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    output: Annotated[Path, typer.Option(dir_okay=False)],
+) -> None:
+    """Cross-check the official BIRD EX evaluator and smoke manifest."""
+    report = run_evaluator_compatibility(
+        official_checkout=official_checkout,
+        tasks_path=tasks,
+        databases_root=databases,
+        manifest_path=manifest,
+    )
+    write_compatibility_report(report, output)
+    typer.echo(
+        f"Matched {report.edge_case_matches}/{report.edge_case_count} edge cases and "
+        f"{report.smoke_task_matches}/{report.smoke_task_count} smoke tasks"
+    )
+    if report.mismatches:
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

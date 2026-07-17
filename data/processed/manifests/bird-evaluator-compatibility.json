@@ -1,0 +1,259 @@
+{
+  "official_repository": "https://github.com/bird-bench/mini_dev",
+  "official_repository_revision": "b3d4bcbbae9a96934ad812551eb400c7a3b23c12",
+  "official_evaluator_revision": "f9d2750c9b53639820c9d47f6d7a5e5025c780ab",
+  "evaluation_ex_sha256": "da1bbcd4530be83692d7c650c814ea9704bb710d0c953eb75d02ccb38233cf89",
+  "evaluation_utils_sha256": "f6943d249caac5aeaef9bce21d43dbf29dcef85a0c965a76df032a9542f308bf",
+  "comparison_policy": "bird-execution-v1",
+  "edge_case_count": 7,
+  "edge_case_matches": 7,
+  "smoke_task_count": 20,
+  "smoke_task_matches": 20,
+  "mismatches": [],
+  "edge_cases": [
+    {
+      "name": "row_order",
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true
+    },
+    {
+      "name": "duplicate_rows",
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true
+    },
+    {
+      "name": "null_values",
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true
+    },
+    {
+      "name": "integer_float_equality",
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true
+    },
+    {
+      "name": "numeric_precision",
+      "official_equivalent": false,
+      "project_equivalent": false,
+      "matched": true
+    },
+    {
+      "name": "empty_results_ignore_columns",
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true
+    },
+    {
+      "name": "execution_error",
+      "official_equivalent": false,
+      "project_equivalent": false,
+      "matched": true
+    }
+  ],
+  "smoke_checks": [
+    {
+      "task_id": "1028",
+      "db_id": "european_football_2",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "24",
+      "db_id": "california_schools",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1165
+    },
+    {
+      "task_id": "1351",
+      "db_id": "student_club",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "244",
+      "db_id": "toxicology",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "1155",
+      "db_id": "thrombosis_prediction",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 103
+    },
+    {
+      "task_id": "740",
+      "db_id": "superhero",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "116",
+      "db_id": "financial",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "459",
+      "db_id": "card_games",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "226",
+      "db_id": "toxicology",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "898",
+      "db_id": "formula_1",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "1464",
+      "db_id": "student_club",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 2
+    },
+    {
+      "task_id": "1185",
+      "db_id": "thrombosis_prediction",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "1042",
+      "db_id": "european_football_2",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 11
+    },
+    {
+      "task_id": "414",
+      "db_id": "card_games",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 10
+    },
+    {
+      "task_id": "800",
+      "db_id": "superhero",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "637",
+      "db_id": "codebase_community",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 5
+    },
+    {
+      "task_id": "47",
+      "db_id": "california_schools",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "218",
+      "db_id": "toxicology",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "1389",
+      "db_id": "student_club",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    },
+    {
+      "task_id": "1139",
+      "db_id": "european_football_2",
+      "official_execution_success": true,
+      "project_execution_success": true,
+      "official_equivalent": true,
+      "project_equivalent": true,
+      "matched": true,
+      "result_rows": 1
+    }
+  ]
+}

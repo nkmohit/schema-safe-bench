@@ -78,6 +78,8 @@ uv sync --extra dense --dev
 
 All comparisons must use the same task set, model configuration, prompt contract, and execution policy. See [docs/experiment-protocol.md](docs/experiment-protocol.md).
 
+Primary execution accuracy uses the checksum-pinned official BIRD set-equivalence semantics. The reproducible compatibility gate and its limitations are documented in [docs/evaluator-compatibility.md](docs/evaluator-compatibility.md).
+
 ## Repository map
 
 ```text
@@ -93,6 +95,8 @@ tests/                   Offline unit and integration tests
 ## Current results
 
 No benchmark performance claim is published until the corresponding configuration, raw traces, aggregation code, and task exclusions are reviewable. The committed sample artifact demonstrates the output format only; it is not a benchmark score.
+
+Evaluator compatibility is verified independently of model performance: 7/7 semantic edge cases and 20/20 committed smoke tasks match the pinned official BIRD evaluator behavior.
 
 ## Responsible use and limitations
 

@@ -6,6 +6,6 @@ manifest_path: data/processed/manifests/bird-minidev-select-smoke.json
 predictions_path: data/processed/predictions/b0-offline.json
 output_path: results/local/bird-minidev-select-smoke-b0-offline.jsonl
 execution:
-  row_limit: 1000
+  row_limit: 100000
   vm_step_budget: 1000000
   progress_interval: 1000

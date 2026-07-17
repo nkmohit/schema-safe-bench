@@ -36,7 +36,7 @@ Acceptance: one command validates the task file and another produces a stable ma
 - [x] Open SQLite read-only with query-only mode, an authorizer, a work budget, and a row cap.
 - [x] Compare successful results with explicit ordered or bag semantics.
 - [x] Preserve structured rejection and execution categories.
-- [ ] Cross-check result equivalence against the official BIRD evaluator on a public sample.
+- [x] Cross-check result equivalence against the official BIRD evaluator on a public sample.
 
 Acceptance: tests demonstrate that rejected SQL cannot reach the executor and equivalent results are recognized under the declared policy.
 

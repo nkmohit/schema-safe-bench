@@ -132,6 +132,41 @@ class ResultComparison(StrictModel):
     equivalent: bool
     order_sensitive: bool
     reason: str
+    policy: Literal["bird-execution-v1", "strict-v1"] = "bird-execution-v1"
+
+
+class EvaluatorCompatibilityCase(StrictModel):
+    name: str
+    official_equivalent: bool
+    project_equivalent: bool
+    matched: bool
+
+
+class EvaluatorSmokeCheck(StrictModel):
+    task_id: str
+    db_id: str
+    official_execution_success: bool
+    project_execution_success: bool
+    official_equivalent: bool
+    project_equivalent: bool
+    matched: bool
+    result_rows: int | None = None
+
+
+class EvaluatorCompatibilityReport(StrictModel):
+    official_repository: str
+    official_repository_revision: str
+    official_evaluator_revision: str
+    evaluation_ex_sha256: str
+    evaluation_utils_sha256: str
+    comparison_policy: Literal["bird-execution-v1"] = "bird-execution-v1"
+    edge_case_count: int
+    edge_case_matches: int
+    smoke_task_count: int
+    smoke_task_matches: int
+    mismatches: list[str] = Field(default_factory=list)
+    edge_cases: list[EvaluatorCompatibilityCase]
+    smoke_checks: list[EvaluatorSmokeCheck]
 
 
 class SchemaDocument(StrictModel):

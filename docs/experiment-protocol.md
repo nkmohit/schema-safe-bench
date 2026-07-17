@@ -40,7 +40,9 @@ Each task trace records:
 
 ## Metrics
 
-The primary metric is execution accuracy: candidate and reference queries produce equivalent results on the same database under the declared comparison policy.
+The primary metric is execution accuracy: candidate and reference queries produce equivalent results on the same database under `bird-execution-v1`. This policy matches the checksum-pinned official BIRD evaluator by comparing returned SQLite row tuples as sets, ignoring order and duplicate multiplicity. `strict-v1` is available only for diagnostics and must not be reported as official-compatible BIRD execution accuracy. See [evaluator-compatibility.md](evaluator-compatibility.md).
+
+Any candidate or reference result truncated by the configured row cap is non-comparable. It must remain visible in traces and cannot be counted as correct from partial rows.
 
 Reliability metrics include identifier-validity rate, schema-evidence recall and precision, policy-violation rate, repair gain, abstention precision and coverage, execution-error rate, prompt tokens, request latency distribution, and estimated cost.
 
