@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
 import yaml
@@ -288,6 +289,148 @@ def test_hosted_method_and_schema_context_must_match() -> None:
         )
     with pytest.raises(ValueError, match="B2 requires"):
         HostedRunConfig(method_id="B2", **common)
+    with pytest.raises(ValueError, match="B3 requires"):
+        HostedRunConfig(method_id="B3", **common)
+
+
+class _FakeDenseEmbedder:
+    library_version = "fixture"
+    dependency_versions: ClassVar[dict[str, str]] = {"sentence-transformers": "fixture"}
+
+    @staticmethod
+    def embed_documents(texts: list[str]) -> list[list[float]]:
+        return [
+            [
+                float("customer" in text.casefold()),
+                float("order" in text.casefold()),
+                1.0,
+            ]
+            for text in texts
+        ]
+
+    @staticmethod
+    def embed_query(question: str) -> list[float]:
+        return [
+            float("customer" in question.casefold()),
+            float("order" in question.casefold()),
+            1.0,
+        ]
+
+
+def _b3_hosted(base: SmokeRunConfig, tmp_path: Path) -> HostedRunConfig:
+    return HostedRunConfig(
+        run_id="hosted-b3-fixture",
+        method_id="B3",
+        tasks_path=base.tasks_path,
+        databases_root=base.databases_root,
+        manifest_path=base.manifest_path,
+        recording_path=tmp_path / "b3-recording.json",
+        output_path=tmp_path / "b3" / "trace.jsonl",
+        schema_context={
+            "strategy": "dense",
+            "policy_id": "bge-dense-schema-documents-v1",
+            "top_k": 12,
+            "embedding": {
+                "model_id": "fixture/model",
+                "revision": "a" * 40,
+                "query_prefix": "query: ",
+                "embedding_dimension": 384,
+                "weights_sha256": "1" * 64,
+                "tokenizer_sha256": "2" * 64,
+                "config_sha256": "3" * 64,
+            },
+        },
+    )
+
+
+def test_b3_context_records_embedding_contract_and_reuses_document_vectors(
+    sample_database: Path, tmp_path: Path
+) -> None:
+    base = _run_inputs(sample_database, tmp_path)
+    config = _b3_hosted(base, tmp_path)
+    catalog = extract_catalog(base.databases_root / "shop" / "shop.sqlite", db_id="shop")
+    cache = {}
+    embedder = _FakeDenseEmbedder()
+
+    first = _hosted_schema_pack(
+        config,
+        catalog=catalog,
+        question="List customer names",
+        dense_embedder=embedder,
+        dense_retrievers=cache,
+    )
+    second = _hosted_schema_pack(
+        config,
+        catalog=catalog,
+        question="List customer names",
+        dense_embedder=embedder,
+        dense_retrievers=cache,
+    )
+
+    assert first == second
+    assert len(cache) == 1
+    assert first.retrieval_metadata
+    assert first.retrieval_metadata.embedding_model_id == "fixture/model"
+    assert first.retrieval_metadata.embedding_model_revision == "a" * 40
+    assert len(first.retrieval_metadata.document_embeddings_sha256) == 64
+    assert len(first.retrieval_metadata.query_embedding_sha256) == 64
+    assert [hit.rank for hit in first.retrieval_hits] == list(
+        range(1, len(first.retrieval_hits) + 1)
+    )
+
+
+def test_hosted_b3_replay_does_not_use_reference_sql_for_retrieval(
+    sample_database: Path, tmp_path: Path, monkeypatch
+) -> None:
+    base = _run_inputs(sample_database, tmp_path)
+    hosted = _b3_hosted(base, tmp_path)
+    monkeypatch.setattr(
+        "schema_safe_bench.runner.SentenceTransformerEmbedder", lambda _: _FakeDenseEmbedder()
+    )
+    catalog = extract_catalog(base.databases_root / "shop" / "shop.sqlite", db_id="shop")
+    cache = {}
+    recording = load_recording(hosted.recording_path, model_name=hosted.model.model_name)
+    for record in json.loads(base.tasks_path.read_text()):
+        task_id = str(record["question_id"])
+        pack = _hosted_schema_pack(
+            hosted,
+            catalog=catalog,
+            question=record["question"],
+            dense_embedder=_FakeDenseEmbedder(),
+            dense_retrievers=cache,
+        )
+        request = build_generation_request(
+            question=record["question"],
+            schema_pack=pack,
+            model_name=hosted.model.model_name,
+            temperature=hosted.model.temperature,
+            max_output_tokens=hosted.model.max_output_tokens,
+            reasoning_effort=hosted.model.reasoning_effort,
+        )
+        save_record(
+            recording,
+            hosted.recording_path,
+            task_id=task_id,
+            digest=request_sha256(task_id, request),
+            response=GenerationResponse(
+                raw_output=record["SQL"],
+                model_name="gpt-5.6-luna",
+                requested_model_name="gpt-5.6-luna",
+                provider="openai",
+                endpoint="responses",
+                status="completed",
+            ),
+        )
+    tasks = json.loads(base.tasks_path.read_text())
+    tasks[0]["SQL"] = "SELECT customer_id FROM customers ORDER BY customer_id"
+    tasks[0]["evidence"] = "changed evaluator-only clue"
+    base.tasks_path.write_text(json.dumps(tasks), encoding="utf-8")
+
+    traces, summary = run_hosted_smoke(hosted, replay_only=True)
+
+    assert summary.tasks == 2
+    assert all(trace.generation and trace.generation.replayed for trace in traces)
+    assert all(trace.schema_pack and trace.schema_pack.retrieval_metadata for trace in traces)
 
 
 def test_b2_context_depends_only_on_question_and_catalog(

@@ -194,7 +194,32 @@ class SchemaPack(StrictModel):
     tables: list[SchemaPackTable]
     foreign_keys: list[str]
     retrieval_hits: list[RetrievalHit] = Field(default_factory=list)
+    retrieval_metadata: "RetrievalMetadata | None" = None
     serialized: str
+
+
+class RetrievalMetadata(StrictModel):
+    policy_id: str
+    strategy: Literal["dense"]
+    top_k: int
+    document_count: int
+    similarity: Literal["cosine"]
+    embedding_model_id: str
+    embedding_model_revision: str
+    embedding_dimension: int
+    document_embeddings_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    query_embedding_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    embedding_library: str
+    embedding_library_version: str
+    embedding_dependencies: dict[str, str]
+    device: Literal["cpu"]
+    precision: Literal["float32"]
+    normalize_embeddings: Literal[True]
+    batch_size: int
+    max_seq_length: int
+    query_prefix: str
+    deterministic_algorithms: Literal[True]
+    torch_num_threads: int
 
 
 class SchemaEvidenceMetrics(StrictModel):
@@ -404,13 +429,14 @@ class SpendBudgetConfig(StrictModel):
 
 
 class HostedSchemaContextConfig(StrictModel):
-    strategy: Literal["full", "length_truncated", "bm25"]
+    strategy: Literal["full", "length_truncated", "bm25", "dense"]
     max_chars: int | None = Field(default=None, ge=64)
     top_k: int | None = Field(default=None, ge=1)
     k1: float | None = Field(default=None, gt=0)
     b: float | None = Field(default=None, ge=0, le=1)
     epsilon: float | None = Field(default=None, ge=0)
     policy_id: str | None = None
+    embedding: "DenseEmbeddingConfig | None" = None
 
     @model_validator(mode="after")
     def validate_strategy(self) -> "HostedSchemaContextConfig":
@@ -421,6 +447,7 @@ class HostedSchemaContextConfig(StrictModel):
                     for value in (self.max_chars, self.top_k, self.k1, self.b, self.epsilon)
                 )
                 or self.policy_id is not None
+                or self.embedding is not None
             ):
                 raise ValueError("full schema context cannot define selection settings")
             return self
@@ -429,19 +456,56 @@ class HostedSchemaContextConfig(StrictModel):
                 raise ValueError("length-truncated schema context requires max_chars and policy_id")
             if any(value is not None for value in (self.top_k, self.k1, self.b, self.epsilon)):
                 raise ValueError("length-truncated schema context cannot define BM25 settings")
+            if self.embedding is not None:
+                raise ValueError("length-truncated schema context cannot define embeddings")
+            return self
+        if self.strategy == "bm25":
+            if self.max_chars is not None or self.embedding is not None:
+                raise ValueError("BM25 schema context cannot define max_chars or embeddings")
+            if any(value is None for value in (self.top_k, self.k1, self.b, self.epsilon)):
+                raise ValueError("BM25 schema context requires top_k, k1, b, and epsilon")
+            if not self.policy_id:
+                raise ValueError("BM25 schema context requires policy_id")
             return self
         if self.max_chars is not None:
-            raise ValueError("BM25 schema context cannot define max_chars")
-        if any(value is None for value in (self.top_k, self.k1, self.b, self.epsilon)):
-            raise ValueError("BM25 schema context requires top_k, k1, b, and epsilon")
-        if not self.policy_id:
-            raise ValueError("BM25 schema context requires policy_id")
+            raise ValueError("dense schema context cannot define max_chars")
+        if any(value is not None for value in (self.k1, self.b, self.epsilon)):
+            raise ValueError("dense schema context cannot define BM25 settings")
+        if self.top_k is None or not self.policy_id or self.embedding is None:
+            raise ValueError("dense schema context requires top_k, policy_id, and embedding")
         return self
+
+
+class DenseEmbeddingConfig(StrictModel):
+    model_id: str
+    revision: str = Field(pattern=r"^[0-9a-f]{40}$")
+    cache_dir: Path = Path(".cache/schema-safe-bench/huggingface")
+    query_prefix: str
+    device: Literal["cpu"] = "cpu"
+    precision: Literal["float32"] = "float32"
+    normalize_embeddings: Literal[True] = True
+    batch_size: int = Field(default=32, ge=1)
+    max_seq_length: int = Field(default=512, ge=1)
+    embedding_dimension: int = Field(default=384, ge=1)
+    weights_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    tokenizer_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    config_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    deterministic_algorithms: Literal[True] = True
+    torch_num_threads: int = Field(default=1, ge=1)
+    trust_remote_code: Literal[False] = False
+    local_files_only: Literal[True] = True
+
+    @field_validator("model_id", "query_prefix")
+    @classmethod
+    def non_empty_embedding_setting(cls, value: str) -> str:
+        if not value:
+            raise ValueError("embedding setting must not be empty")
+        return value
 
 
 class HostedRunConfig(StrictModel):
     run_id: str
-    method_id: Literal["B0", "B1", "B2"]
+    method_id: Literal["B0", "B1", "B2", "B3"]
     tasks_path: Path
     databases_root: Path
     manifest_path: Path
@@ -467,6 +531,10 @@ class HostedRunConfig(StrictModel):
             not self.schema_context or self.schema_context.strategy != "bm25"
         ):
             raise ValueError("B2 requires BM25 schema context")
+        if self.method_id == "B3" and (
+            not self.schema_context or self.schema_context.strategy != "dense"
+        ):
+            raise ValueError("B3 requires dense schema context")
         return self
 
 

@@ -1,0 +1,104 @@
+{
+  "policy_id": "bge-dense-schema-documents-v1",
+  "method_id": "B3",
+  "embedding_model": {
+    "model_id": "BAAI/bge-small-en-v1.5",
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "source": "https://huggingface.co/BAAI/bge-small-en-v1.5",
+    "license": "MIT",
+    "architecture": "BertModel with CLS pooling and L2 normalization",
+    "embedding_dimension": 384,
+    "max_seq_length": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "document_prefix": "",
+    "weights_sha256": "3c9f31665447c8911517620762200d2245a2518d6e7208acc78cd9db317e21ad",
+    "tokenizer_sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+    "config_sha256": "094f8e891b932f2000c92cfc663bac4c62069f5d8af5b5278c4306aef3084750"
+  },
+  "runtime": {
+    "sentence_transformers": "3.4.1",
+    "torch": "2.13.0",
+    "transformers": "4.57.6",
+    "huggingface_hub": "0.36.2",
+    "tokenizers": "0.22.2",
+    "device": "cpu",
+    "precision": "float32",
+    "batch_size": 32,
+    "normalize_embeddings": true,
+    "deterministic_algorithms": true,
+    "torch_num_threads": 1,
+    "trust_remote_code": false,
+    "run_local_files_only": true,
+    "cache_dir": ".cache/schema-safe-bench/huggingface"
+  },
+  "documents": {
+    "granularity": "one table document followed by one document per column",
+    "ordering": "case-insensitive SQLite catalog-name order, then SQLite pragma_table_info column order",
+    "table_template": "table {table}; columns {column data-type pairs}",
+    "column_template": "table {table}; column {column}; type {type}[ primary key]",
+    "overlength_behavior": "truncate at the model tokenizer's 512-token limit"
+  },
+  "ranking": {
+    "similarity": "cosine",
+    "top_k": 12,
+    "tie_break": "ascending document_id",
+    "threshold": null
+  },
+  "embedding_audit": {
+    "vector_storage": "raw embedding vectors remain local and are represented in each trace by ordered float32 SHA-256 digests",
+    "document_digest_order": "schema document order",
+    "query_digest_input": "the normalized 384-dimensional query vector after applying the locked prefix"
+  },
+  "schema_pack": {
+    "table_hit": "include every column in the selected table",
+    "column_hits_only": "include selected columns, primary-key columns, and selected-table join endpoints",
+    "foreign_keys": "include edges whose endpoint tables are selected, in lexicographic order",
+    "serialization": "one complete table declaration per line followed by FK lines"
+  },
+  "leakage_boundary": {
+    "embedding_and_retrieval_inputs": [
+      "public question",
+      "database catalog without row contents"
+    ],
+    "generation_inputs": [
+      "public question",
+      "retrieved schema pack"
+    ],
+    "evaluator_only": [
+      "public reference SQL",
+      "reference result",
+      "task evidence",
+      "schema-evidence labels"
+    ]
+  },
+  "reproducibility_limitations": [
+    "CPU and math-library differences can produce small floating-point differences",
+    "stable document-ID tie-breaking resolves exact score ties but not near-ties that reverse across runtimes",
+    "hosted SQL generation remains nondeterministic and uses committed response recordings for replay"
+  ],
+  "implementation": "src/schema_safe_bench/retrieval/embeddings.py",
+  "method_config": "configs/methods/b3-dense-schema-retrieval.yaml",
+  "run_config": "configs/runs/b3-openai-luna-smoke.yaml",
+  "manifest": {
+    "path": "data/processed/manifests/bird-minidev-select-smoke.json",
+    "sha256": "2ff3561dd1fc1170bee64209716a1bc1a9e2976a7b7bf9d3e7a1592a0775d375",
+    "tasks": 20,
+    "databases": 10
+  },
+  "smoke_manifest_effect": {
+    "retrieval_hits": 240,
+    "schema_chars_min": 236,
+    "schema_chars_median": 460.5,
+    "schema_chars_max": 4196,
+    "schema_chars_total": 18633,
+    "selected_tables_min": 1,
+    "selected_tables_median": 3.0,
+    "selected_tables_max": 6,
+    "selected_columns_min": 11,
+    "selected_columns_median": 22.5,
+    "selected_columns_max": 190,
+    "evaluator_only_full_table_recall_tasks": 13,
+    "evaluator_only_full_column_recall_tasks": 9,
+    "evaluator_only_retrieval_miss_tasks": 11
+  }
+}

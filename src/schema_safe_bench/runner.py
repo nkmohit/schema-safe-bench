@@ -31,6 +31,7 @@ from schema_safe_bench.models import (
     GenerationResponse,
     HostedRunConfig,
     Prediction,
+    RetrievalMetadata,
     RunSummary,
     SchemaPack,
     SmokeRunConfig,
@@ -40,6 +41,8 @@ from schema_safe_bench.prompting import build_generation_request, extract_candid
 from schema_safe_bench.reporting import write_run_artifacts
 from schema_safe_bench.retrieval import (
     BM25Retriever,
+    DenseRetriever,
+    SentenceTransformerEmbedder,
     build_schema_documents,
     build_schema_pack,
     full_schema_pack,
@@ -238,6 +241,11 @@ def run_hosted_smoke(
         ]
     ] = []
     missing_reservations = []
+    dense_embedder = None
+    dense_retrievers: dict[str, DenseRetriever] = {}
+    if config.method_id == "B3":
+        assert config.schema_context and config.schema_context.embedding
+        dense_embedder = SentenceTransformerEmbedder(config.schema_context.embedding)
 
     for task_id in manifest.task_ids:
         try:
@@ -246,7 +254,13 @@ def run_hosted_smoke(
             raise KeyError(f"Manifest task {task_id!r} is absent from the dataset") from exc
         database = find_database(config.databases_root, task.db_id)
         catalog = extract_catalog(database, db_id=task.db_id)
-        schema_pack = _hosted_schema_pack(config, catalog=catalog, question=task.question)
+        schema_pack = _hosted_schema_pack(
+            config,
+            catalog=catalog,
+            question=task.question,
+            dense_embedder=dense_embedder,
+            dense_retrievers=dense_retrievers,
+        )
         request = build_generation_request(
             question=task.question,
             schema_pack=schema_pack,
@@ -323,7 +337,14 @@ def run_hosted_smoke(
     return traces, _summarize(config.run_id, config.method_id, traces)
 
 
-def _hosted_schema_pack(config: HostedRunConfig, *, catalog: Catalog, question: str) -> SchemaPack:
+def _hosted_schema_pack(
+    config: HostedRunConfig,
+    *,
+    catalog: Catalog,
+    question: str,
+    dense_embedder: SentenceTransformerEmbedder | None = None,
+    dense_retrievers: dict[str, DenseRetriever] | None = None,
+) -> SchemaPack:
     """Build prompt context from generation-safe inputs only."""
     if config.method_id == "B0":
         return full_schema_pack(catalog)
@@ -332,17 +353,65 @@ def _hosted_schema_pack(config: HostedRunConfig, *, catalog: Catalog, question: 
         assert config.schema_context.max_chars is not None
         return length_truncated_schema_pack(catalog, max_chars=config.schema_context.max_chars)
     assert config.schema_context.top_k is not None
-    assert config.schema_context.k1 is not None
-    assert config.schema_context.b is not None
-    assert config.schema_context.epsilon is not None
     documents = build_schema_documents(catalog)
-    hits = BM25Retriever(
-        documents,
-        k1=config.schema_context.k1,
-        b=config.schema_context.b,
-        epsilon=config.schema_context.epsilon,
-    ).retrieve(question, top_k=config.schema_context.top_k)
-    return build_schema_pack(catalog, hits)
+    if config.method_id == "B2":
+        assert config.schema_context.k1 is not None
+        assert config.schema_context.b is not None
+        assert config.schema_context.epsilon is not None
+        hits = BM25Retriever(
+            documents,
+            k1=config.schema_context.k1,
+            b=config.schema_context.b,
+            epsilon=config.schema_context.epsilon,
+        ).retrieve(question, top_k=config.schema_context.top_k)
+        return build_schema_pack(catalog, hits)
+
+    embedding = config.schema_context.embedding
+    assert embedding is not None and config.schema_context.policy_id is not None
+    if dense_embedder is None:
+        dense_embedder = SentenceTransformerEmbedder(embedding)
+    retriever_cache = dense_retrievers if dense_retrievers is not None else {}
+    catalog_key = hashlib.sha256(
+        catalog.model_dump_json(exclude_none=True).encode("utf-8")
+    ).hexdigest()
+    retriever = retriever_cache.get(catalog_key)
+    if retriever is None:
+        retriever = DenseRetriever(
+            documents,
+            dense_embedder.embed_documents,
+            embed_query=dense_embedder.embed_query,
+        )
+        retriever_cache[catalog_key] = retriever
+    hits = retriever.retrieve(question, top_k=config.schema_context.top_k)
+    assert retriever.query_embedding_sha256 is not None
+    pack = build_schema_pack(catalog, hits)
+    return pack.model_copy(
+        update={
+            "retrieval_metadata": RetrievalMetadata(
+                policy_id=config.schema_context.policy_id,
+                strategy="dense",
+                top_k=config.schema_context.top_k,
+                document_count=len(documents),
+                similarity="cosine",
+                embedding_model_id=embedding.model_id,
+                embedding_model_revision=embedding.revision,
+                embedding_dimension=embedding.embedding_dimension,
+                document_embeddings_sha256=retriever.document_embeddings_sha256,
+                query_embedding_sha256=retriever.query_embedding_sha256,
+                embedding_library="sentence-transformers",
+                embedding_library_version=dense_embedder.library_version,
+                embedding_dependencies=dense_embedder.dependency_versions,
+                device=embedding.device,
+                precision=embedding.precision,
+                normalize_embeddings=embedding.normalize_embeddings,
+                batch_size=embedding.batch_size,
+                max_seq_length=embedding.max_seq_length,
+                query_prefix=embedding.query_prefix,
+                deterministic_algorithms=embedding.deterministic_algorithms,
+                torch_num_threads=embedding.torch_num_threads,
+            )
+        }
+    )
 
 
 def run_and_write(config_path: Path) -> tuple[Path, Path]:

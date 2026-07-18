@@ -56,3 +56,5 @@ flowchart TB
 - `reporting`: write immutable traces and aggregate summaries.
 
 Dependency direction follows this evaluation flow; provider adapters must not own validation or execution policy.
+
+Dense retrieval uses a separately installed local model adapter. Model acquisition is an explicit cache-preparation operation; benchmark runs require the immutable revision to be present locally and verify the cached weights, tokenizer, and configuration before embedding. The adapter receives schema documents and the public question only. It has no task object or evaluator input.

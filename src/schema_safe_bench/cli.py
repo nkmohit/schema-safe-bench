@@ -24,7 +24,8 @@ from schema_safe_bench.evaluation import (
 )
 from schema_safe_bench.models import ExecutionLimits
 from schema_safe_bench.reporting import compare_paired_runs, load_traces, write_run_comparison
-from schema_safe_bench.runner import run_and_write, run_hosted_and_write
+from schema_safe_bench.retrieval import cache_sentence_transformer
+from schema_safe_bench.runner import load_hosted_run_config, run_and_write, run_hosted_and_write
 
 app = typer.Typer(no_args_is_help=True, help="Schema-grounded text-to-SQL evaluation.")
 dataset_app = typer.Typer(no_args_is_help=True, help="Inspect and prepare benchmark tasks.")
@@ -32,11 +33,13 @@ catalog_app = typer.Typer(no_args_is_help=True, help="Extract database schema ca
 run_app = typer.Typer(no_args_is_help=True, help="Run versioned evaluations.")
 evaluation_app = typer.Typer(no_args_is_help=True, help="Verify evaluation compatibility.")
 results_app = typer.Typer(no_args_is_help=True, help="Compare and inspect benchmark results.")
+retrieval_app = typer.Typer(no_args_is_help=True, help="Prepare local retrieval models.")
 app.add_typer(dataset_app, name="dataset")
 app.add_typer(catalog_app, name="catalog")
 app.add_typer(run_app, name="run")
 app.add_typer(evaluation_app, name="evaluation")
 app.add_typer(results_app, name="results")
+app.add_typer(retrieval_app, name="retrieval")
 
 
 @app.callback()
@@ -142,6 +145,25 @@ def run_hosted(
     )
     typer.echo(f"Wrote traces to {traces_path}")
     typer.echo(f"Wrote summary to {summary_path}")
+
+
+@retrieval_app.command("cache-model")
+def cache_retrieval_model(
+    config: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+) -> None:
+    """Download and verify a revision-pinned local dense-retrieval model."""
+    run_config = load_hosted_run_config(config)
+    if run_config.method_id != "B3" or not run_config.schema_context:
+        raise typer.BadParameter("configuration must define the B3 dense method")
+    embedding = run_config.schema_context.embedding
+    if embedding is None:
+        raise typer.BadParameter("B3 configuration must define an embedding model")
+    embedder = cache_sentence_transformer(embedding)
+    typer.echo(
+        f"Cached {embedding.model_id}@{embedding.revision} "
+        f"({embedding.embedding_dimension} dimensions, sentence-transformers "
+        f"{embedder.library_version})"
+    )
 
 
 @results_app.command("compare")

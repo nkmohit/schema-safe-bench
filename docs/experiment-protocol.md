@@ -38,6 +38,16 @@ A table-document hit exposes the full selected table. Column-only hits expose th
 
 Reference SQL does not participate in document construction, retrieval, schema-pack assembly, request creation, or generation. After a response has been recorded, evaluator-only `reference-sql-identifiers-v1` analysis validates the public reference SQL and measures whether its referenced tables and columns were prompt-visible. Empty required-identifier sets receive recall 1.0; empty selected-identifier sets receive precision 1.0 only when the corresponding required set is also empty.
 
+### B3 dense retrieval policy
+
+B3 applies `bge-dense-schema-documents-v1` with `BAAI/bge-small-en-v1.5` pinned to revision `5c38ec7c405ec4b44b94cc5a9bb96e735b38267a`. The model runs locally on CPU in float32 with deterministic PyTorch algorithms, one Torch thread, normalized 384-dimensional embeddings, a batch size of 32, and a 512-token tokenizer ceiling. Runs load only the revision-pinned local cache after verifying SHA-256 digests for the weights, tokenizer, and model configuration.
+
+Schema documents use the same table and column templates and catalog order as B2. Documents are encoded without a prefix. Questions are encoded with the model-authorized prefix `Represent this sentence for searching relevant passages: `. B3 selects 12 documents by descending cosine similarity and ascending document ID for exact ties. Schema-pack primary keys, selected-table join endpoints, foreign keys, and serialization follow the B2 contract. Each trace records ordered float32 SHA-256 digests for the document-vector matrix and query vector, retaining an audit identity without duplicating raw vectors across traces.
+
+The full model identity, license, snapshot hashes, runtime versions, embedding settings, manifest digest, and smoke-manifest retrieval distribution are locked in [`data/provenance/b3-dense-schema-retrieval.json`](../data/provenance/b3-dense-schema-retrieval.json). CPU and math-library differences can produce small floating-point changes; exact ties are stable, while sufficiently close non-tied scores may still reorder across runtimes. This limitation is recorded rather than described as cross-platform bitwise determinism.
+
+As with B2, reference SQL, reference results, task evidence, and evaluator-derived identifiers are unavailable to embedding, retrieval, and generation. `reference-sql-identifiers-v1` analysis runs only after generation.
+
 ## Required records
 
 Each task trace records:

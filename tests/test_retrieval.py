@@ -44,6 +44,31 @@ def test_dense_and_hybrid_retrieval(sample_database: Path) -> None:
     assert set(hybrid_hits[0].component_scores) <= {"bm25", "dense"}
 
 
+def test_dense_retrieval_uses_distinct_query_embedding_and_stable_ties(
+    sample_database: Path,
+) -> None:
+    documents = build_schema_documents(extract_catalog(sample_database))
+    seen_queries = []
+
+    def documents_embed(texts: list[str]) -> list[list[float]]:
+        return [[1.0, 0.0] for _ in texts]
+
+    def query_embed(question: str) -> list[float]:
+        seen_queries.append(question)
+        return [1.0, 0.0]
+
+    hits = DenseRetriever(documents, documents_embed, embed_query=query_embed).retrieve(
+        "question only", top_k=4
+    )
+
+    assert seen_queries == ["question only"]
+    assert [hit.document_id for hit in hits] == sorted(
+        document.document_id for document in documents
+    )[:4]
+    assert all(hit.component_scores == {"dense": 1.0} for hit in hits)
+    assert len(DenseRetriever(documents, documents_embed).document_embeddings_sha256) == 64
+
+
 def test_schema_pack_includes_join_edges(sample_database: Path) -> None:
     catalog = extract_catalog(sample_database)
     documents = build_schema_documents(catalog)

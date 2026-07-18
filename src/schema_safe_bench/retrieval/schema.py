@@ -1,7 +1,9 @@
 """Deterministic schema retrieval baselines."""
 
+import hashlib
 import math
 import re
+import struct
 from collections.abc import Callable
 
 from rank_bm25 import BM25Okapi
@@ -16,6 +18,7 @@ from schema_safe_bench.models import (
 
 _TOKEN_PATTERN = re.compile(r"[a-zA-Z0-9]+")
 EmbeddingFunction = Callable[[list[str]], list[list[float]]]
+QueryEmbeddingFunction = Callable[[str], list[float]]
 
 
 def _tokens(text: str) -> list[str]:
@@ -95,22 +98,40 @@ class BM25Retriever:
 class DenseRetriever:
     """Dense retrieval with an injected, versioned embedding function."""
 
-    def __init__(self, documents: list[SchemaDocument], embed: EmbeddingFunction) -> None:
+    def __init__(
+        self,
+        documents: list[SchemaDocument],
+        embed: EmbeddingFunction,
+        *,
+        embed_query: QueryEmbeddingFunction | None = None,
+    ) -> None:
         if not documents:
             raise ValueError("at least one schema document is required")
         self.documents = documents
         self._embed = embed
+        self._embed_query = embed_query
         self._vectors = embed([document.text for document in documents])
         if len(self._vectors) != len(documents):
             raise ValueError("embedding function returned the wrong vector count")
+        if not self._vectors or not self._vectors[0]:
+            raise ValueError("embedding function returned empty vectors")
+        dimension = len(self._vectors[0])
+        if any(len(vector) != dimension for vector in self._vectors):
+            raise ValueError("document embedding dimensions do not match")
+        self.document_embeddings_sha256 = _vectors_sha256(self._vectors)
+        self.query_embedding_sha256: str | None = None
 
     def retrieve(self, question: str, *, top_k: int) -> list[RetrievalHit]:
         if top_k < 1:
             raise ValueError("top_k must be positive")
-        query_vectors = self._embed([question])
-        if len(query_vectors) != 1:
-            raise ValueError("embedding function must return one query vector")
-        query = query_vectors[0]
+        if self._embed_query is not None:
+            query = self._embed_query(question)
+        else:
+            query_vectors = self._embed([question])
+            if len(query_vectors) != 1:
+                raise ValueError("embedding function must return one query vector")
+            query = query_vectors[0]
+        self.query_embedding_sha256 = _vectors_sha256([query])
         scored = [(index, _cosine(query, vector)) for index, vector in enumerate(self._vectors)]
         ranked = sorted(scored, key=lambda item: (-item[1], self.documents[item[0]].document_id))[
             :top_k
@@ -186,6 +207,15 @@ def _cosine(left: list[float], right: list[float]) -> float:
     if not left_norm or not right_norm:
         return 0.0
     return sum(a * b for a, b in zip(left, right, strict=True)) / (left_norm * right_norm)
+
+
+def _vectors_sha256(vectors: list[list[float]]) -> str:
+    digest = hashlib.sha256()
+    digest.update(struct.pack("<I", len(vectors)))
+    for vector in vectors:
+        digest.update(struct.pack("<I", len(vector)))
+        digest.update(struct.pack(f"<{len(vector)}f", *vector))
+    return digest.hexdigest()
 
 
 def full_schema_pack(catalog: Catalog, *, max_chars: int | None = None) -> SchemaPack:

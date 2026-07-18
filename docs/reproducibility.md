@@ -41,7 +41,7 @@ uv run schema-safe-bench dataset verify \
 
 Every run configuration declares a task manifest, method, seed, execution limits, prompt version, and generator settings. Outputs are JSONL traces plus a summary JSON. Local runs are ignored unless deliberately curated as small examples.
 
-For the hosted B0, B1, and B2 paths, follow [hosted-generation.md](hosted-generation.md). The committed OpenAI/Luna configurations enforce local spend limits, record API usage without credentials, and support request-digest-checked offline replay.
+For the hosted B0 through B3 paths, follow [hosted-generation.md](hosted-generation.md). The committed OpenAI/Luna configurations enforce local spend limits, record API usage without credentials, and support request-digest-checked offline replay. B3 additionally requires its digest-verified local embedding snapshot.
 
 Generate the paired comparison from committed traces with:
 
