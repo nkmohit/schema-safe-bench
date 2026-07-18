@@ -43,6 +43,19 @@ Every run configuration declares a task manifest, method, seed, execution limits
 
 For the hosted B0 through B7 paths, follow [hosted-generation.md](hosted-generation.md). The committed OpenAI/Luna configurations enforce local spend limits, record API usage without credentials, and support request-digest-checked offline replay. B3 through B5 additionally require the digest-verified local embedding snapshot; B5 also requires the digest-verified local cross-encoder snapshot. B6 and B7 reuse committed B4 schema packs and responses, so replay requires no embedding execution. B6 validates its separate repair recording; B7 validates the unchanged B4 recording and deterministic terminal policy.
 
+Regenerate the complete B0-B7 manifest, exclusion report, database inventory, config audit, and
+cost preflight without exposing a provider key:
+
+```bash
+env -u OPENAI_API_KEY uv run schema-safe-bench evaluation freeze \
+  --config configs/evaluation/bird-minidev-b0-b7-full-freeze.yaml
+```
+
+The command currently exits `2` after writing the deterministic artifacts because the complete
+atomic runs exceed the unchanged `$5` per-run cap and 72 reference queries reach the frozen
+execution budget. It makes no hosted request. The exact constraints are documented in
+[full-evaluation-freeze.md](full-evaluation-freeze.md).
+
 Generate the paired comparison from committed traces with:
 
 ```bash

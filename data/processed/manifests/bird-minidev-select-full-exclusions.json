@@ -1,0 +1,28 @@
+{
+  "format_version": "1",
+  "policy": "select-only-structural-fields-v1",
+  "decision_inputs": [
+    "task_id",
+    "database_id",
+    "question",
+    "reference_sql_structure"
+  ],
+  "prohibited_decision_inputs": [
+    "model_output",
+    "execution_result",
+    "evaluator_label",
+    "equivalence_outcome"
+  ],
+  "raw_record_count": 500,
+  "included_count": 500,
+  "excluded_count": 0,
+  "reason_counts": {
+    "missing_task_id": 0,
+    "missing_database_id": 0,
+    "missing_question": 0,
+    "missing_reference_sql": 0,
+    "not_single_select_query": 0,
+    "duplicate_task_id": 0
+  },
+  "exclusions": []
+}

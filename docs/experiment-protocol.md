@@ -6,7 +6,13 @@ On public text-to-SQL tasks, can schema-aware retrieval plus validation and one 
 
 ## Primary task set
 
-Use the 500 high-quality SELECT-only tasks from BIRD Mini-Dev. Exclude CRUD-oriented tasks. A deterministic 20-task manifest is used for pipeline smoke testing, and every smaller run must be labelled as a sample rather than a complete benchmark result.
+Derive the primary population from the pinned BIRD Mini-Dev SQLite task source by requiring a
+normalized task ID, database ID, question, and exactly one read-only query. The frozen source
+contains 500 records and all 500 satisfy that policy across 11 databases; no task is excluded.
+Ordering uses normalized task ID ascending and never uses a model or evaluator outcome. A
+deterministic 20-task manifest remains the pipeline smoke set, and every smaller run must be
+labelled as a sample rather than a complete benchmark result. See
+[the full-evaluation freeze](full-evaluation-freeze.md).
 
 ## Controlled variables
 

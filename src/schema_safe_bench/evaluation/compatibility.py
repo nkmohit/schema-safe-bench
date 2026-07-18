@@ -8,7 +8,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from schema_safe_bench.catalog import extract_catalog
-from schema_safe_bench.datasets import find_database, load_bird_tasks
+from schema_safe_bench.datasets import find_database, load_bird_tasks, load_task_manifest
 from schema_safe_bench.evaluation.results import compare_results
 from schema_safe_bench.execution import execute_read_only
 from schema_safe_bench.models import (
@@ -17,7 +17,6 @@ from schema_safe_bench.models import (
     EvaluatorSmokeCheck,
     ExecutionLimits,
     ExecutionResult,
-    TaskManifest,
 )
 from schema_safe_bench.validation import SqlValidator
 
@@ -189,7 +188,7 @@ def run_evaluator_compatibility(
     )
     edge_cases = build_edge_case_cross_check(official_calculate_ex)
     tasks = {task.task_id: task for task in load_bird_tasks(tasks_path, select_only=True)}
-    manifest = TaskManifest.model_validate_json(manifest_path.read_text(encoding="utf-8"))
+    manifest = load_task_manifest(manifest_path)
     active_limits = limits or ExecutionLimits(row_limit=100_000, vm_step_budget=10_000_000)
     validators: dict[str, SqlValidator] = {}
     database_paths: dict[str, Path] = {}

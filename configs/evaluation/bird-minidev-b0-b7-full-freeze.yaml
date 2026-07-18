@@ -1,0 +1,34 @@
+dataset_revision: f65faf4ae3b638c1fa6df1d3370c8d92c8366301
+tasks_path: data/raw/bird-minidev/mini_dev_sqlite.json
+databases_root: data/raw/bird-minidev/dev_databases
+dataset_provenance_path: data/provenance/bird-minidev.json
+evaluator_provenance_path: data/provenance/bird-evaluator.json
+manifest_path: data/processed/manifests/bird-minidev-select-full.json
+exclusion_report_path: data/processed/manifests/bird-minidev-select-full-exclusions.json
+database_inventory_path: data/provenance/bird-minidev-full-databases.json
+asset_verification_path: data/processed/manifests/bird-minidev-select-full-verification.json
+report_path: results/full-evaluation-readiness.json
+run_config_paths:
+  - configs/runs/full/b0-openai-luna-full.yaml
+  - configs/runs/full/b1-openai-luna-full.yaml
+  - configs/runs/full/b2-openai-luna-full.yaml
+  - configs/runs/full/b3-openai-luna-full.yaml
+  - configs/runs/full/b4-openai-luna-full.yaml
+  - configs/runs/full/b5-openai-luna-full.yaml
+  - configs/runs/full/b6-openai-luna-full.yaml
+  - configs/runs/full/b7-openai-luna-full.yaml
+reusable_recording_paths:
+  B0: data/processed/predictions/b0-openai-gpt-5-6-luna-smoke.json
+  B1: data/processed/predictions/b1-openai-gpt-5-6-luna-smoke.json
+  B2: data/processed/predictions/b2-openai-gpt-5-6-luna-smoke.json
+  B3: data/processed/predictions/b3-openai-gpt-5-6-luna-smoke.json
+  B4: data/processed/predictions/b4-openai-gpt-5-6-luna-smoke.json
+  B5: data/processed/predictions/b5-openai-gpt-5-6-luna-smoke.json
+  B6: data/processed/predictions/b6-openai-gpt-5-6-luna-repair-smoke.json
+reusable_trace_paths:
+  B0: results/b0-openai-gpt-5-6-luna-smoke/trace.jsonl
+  B1: results/b1-openai-gpt-5-6-luna-smoke/trace.jsonl
+  B2: results/b2-openai-gpt-5-6-luna-smoke/trace.jsonl
+  B3: results/b3-openai-gpt-5-6-luna-smoke/trace.jsonl
+  B4: results/b4-openai-gpt-5-6-luna-smoke/trace.jsonl
+  B5: results/b5-openai-gpt-5-6-luna-smoke/trace.jsonl

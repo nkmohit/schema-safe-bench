@@ -10,14 +10,15 @@ from pathlib import Path
 import yaml
 
 from schema_safe_bench.catalog import extract_catalog
-from schema_safe_bench.datasets import find_database, load_bird_tasks
+from schema_safe_bench.datasets import find_database, load_bird_tasks, load_task_manifest
 from schema_safe_bench.evaluation import compare_results, evaluate_schema_evidence
 from schema_safe_bench.execution import execute_read_only
 from schema_safe_bench.generation import (
     OpenAIResponsesGenerator,
     SpendLedger,
     load_recording,
-    load_repair_recording,
+    load_recording_with_sources,
+    load_repair_recording_with_sources,
     maximum_request_cost,
     recorded_repair_response,
     recorded_response,
@@ -49,7 +50,6 @@ from schema_safe_bench.models import (
     RunSummary,
     SchemaPack,
     SmokeRunConfig,
-    TaskManifest,
     UsageAccounting,
     ValidationResult,
 )
@@ -279,7 +279,7 @@ def _abstention_cause(
 
 def run_offline_smoke(config: SmokeRunConfig) -> tuple[list[AuditTrace], RunSummary]:
     tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
-    manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
+    manifest = load_task_manifest(config.manifest_path)
     predictions = _load_predictions(config.predictions_path)
     configuration_sha256 = _configuration_sha256(config)
     software_revision = _software_revision()
@@ -320,8 +320,12 @@ def run_hosted_smoke(
     if config.method_id == "B7":
         return _run_b7_abstention_smoke(config)
     tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
-    manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
-    recording = load_recording(config.recording_path, model_name=config.model.model_name)
+    manifest = load_task_manifest(config.manifest_path)
+    recording = load_recording_with_sources(
+        config.recording_path,
+        source_paths=config.replay_source_paths,
+        model_name=config.model.model_name,
+    )
     configuration_sha256 = _configuration_sha256(config)
     software_revision = _software_revision()
     prepared: list[
@@ -462,7 +466,7 @@ def _run_b6_repair_smoke(
             raise ValueError(f"B6 {label} must exactly match its B4 first pass")
 
     tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
-    manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
+    manifest = load_task_manifest(config.manifest_path)
     first_traces = [
         AuditTrace.model_validate_json(line)
         for line in policy.first_pass_trace_path.read_text(encoding="utf-8").splitlines()
@@ -478,8 +482,10 @@ def _run_b6_repair_smoke(
     if set(first_records) != set(manifest.task_ids):
         raise ValueError("B4 first-pass recording must contain exactly the manifest tasks")
 
-    repair_recording = load_repair_recording(
-        policy.repair_recording_path, model_name=config.model.model_name
+    repair_recording = load_repair_recording_with_sources(
+        policy.repair_recording_path,
+        source_paths=policy.repair_replay_source_paths,
+        model_name=config.model.model_name,
     )
     configuration_sha256 = _configuration_sha256(config)
     software_revision = _software_revision()
@@ -662,7 +668,7 @@ def _run_b7_abstention_smoke(
             raise ValueError(f"B7 {label} must exactly match its B4 first pass")
 
     tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
-    manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
+    manifest = load_task_manifest(config.manifest_path)
     first_traces = [
         AuditTrace.model_validate_json(line)
         for line in policy.first_pass_trace_path.read_text(encoding="utf-8").splitlines()

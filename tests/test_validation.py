@@ -67,6 +67,14 @@ def test_validator_records_abstention(validator: SqlValidator) -> None:
     assert not result.accepted
 
 
+def test_validator_accepts_aliased_cte_output(validator: SqlValidator) -> None:
+    result = validator.validate(
+        "WITH selected AS (SELECT customer_id FROM customers) "
+        "SELECT s.customer_id FROM selected AS s"
+    )
+    assert result.status == "valid"
+
+
 def test_validator_enforces_length(validator: SqlValidator) -> None:
     result = SqlValidator(validator.catalog, max_query_length=5).validate("SELECT 1")
     assert result.issues[0].code == "query_too_long"

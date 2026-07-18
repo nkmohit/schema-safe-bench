@@ -57,6 +57,11 @@ uv run schema-safe-bench run smoke --help
 
 See [data/README.md](data/README.md) for the expected BIRD layout and [docs/reproducibility.md](docs/reproducibility.md) for the complete run sequence.
 
+The complete 500-task, 11-database B0-B7 protocol is frozen and provider-free preflighted. Its
+expanded execution remains blocked by the unchanged `$5` per-run cap and the reference-execution
+gate; no cap was raised and no task was removed. See
+[docs/full-evaluation-freeze.md](docs/full-evaluation-freeze.md).
+
 The hosted-generation path uses a locally configured OpenAI credential and `gpt-5.6-luna`, with a project spend guard and deterministic response replay. B0 supplies the full schema, B1 applies a provenance-locked 1,000-character catalog-prefix policy, B2 applies BM25 schema retrieval, B3 applies revision-pinned local dense retrieval, B4 applies locked reciprocal-rank fusion over B2 and B3, and B5 locally reranks a fixed B4 candidate set. B6 and B7 reuse the exact B4 first pass for bounded repair and deterministic terminal abstention respectively. See [docs/hosted-generation.md](docs/hosted-generation.md). No hosted API calls run in CI.
 
 Install the optional local-model stack only for experiments that use the documented embedding model or reranker:

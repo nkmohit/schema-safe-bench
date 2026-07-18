@@ -1,0 +1,95 @@
+{
+  "format_version": "1",
+  "database_count": 11,
+  "databases": [
+    {
+      "db_id": "california_schools",
+      "relative_path": "california_schools/california_schools.sqlite",
+      "size_bytes": 11116544,
+      "sha256": "c0903eec662e63068fd1d14403d3d6c1d473287fc10c4356333ea58f878db983",
+      "catalog_sha256": "c1f8d6ba82c9f9e074c3d60d6a640e6968ee6d692cec3059a463cb0a253b45e6",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "card_games",
+      "relative_path": "card_games/card_games.sqlite",
+      "size_bytes": 261820416,
+      "sha256": "c98bdb57fe7474da798b407785544b9af0daaad5d61fd21e2a73309493bc1227",
+      "catalog_sha256": "96a9fc7fc3ecb8fcce9e2a0e1a6e925acb0e485b6ba016381b7a0a21571208cb",
+      "wal_status": "empty"
+    },
+    {
+      "db_id": "codebase_community",
+      "relative_path": "codebase_community/codebase_community.sqlite",
+      "size_bytes": 481419264,
+      "sha256": "92101be6d2a9f6adceea59d38f6d1c556087f9eea1432432a21268cb1348036d",
+      "catalog_sha256": "23c306e541605a52ba9f1f697d843a2e1c6441cc890ab3469c10b592e124ef60",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "debit_card_specializing",
+      "relative_path": "debit_card_specializing/debit_card_specializing.sqlite",
+      "size_bytes": 34635776,
+      "sha256": "b3d149ad05746dbbe5116e229e17e18f09c39db43cf117d9ef3441753608b691",
+      "catalog_sha256": "020181202b358616a7c1a36819cc4d0e17279666b2961fdb6830a9ffc6f95e30",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "european_football_2",
+      "relative_path": "european_football_2/european_football_2.sqlite",
+      "size_bytes": 597754880,
+      "sha256": "f72f5c9b990371417288a67b27a02e601ef904d45525c2c9f7931fb01001c536",
+      "catalog_sha256": "72ce18430adf2968a1b0a42e11c6410c1de44ffc9af6ea5af5503064795e86a9",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "financial",
+      "relative_path": "financial/financial.sqlite",
+      "size_bytes": 71294976,
+      "sha256": "d15d89cdb068a202b6f2b99342af44dffc1d52545b39ceaf62efdc0ba570101e",
+      "catalog_sha256": "93f71acf743841866a381c67029d5fc7cdd548359642e97293fd7e54cbacbcb6",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "formula_1",
+      "relative_path": "formula_1/formula_1.sqlite",
+      "size_bytes": 22360064,
+      "sha256": "79770caf966707e35516fa566e24b40ae515c74ec1ec4631235245645b87b24d",
+      "catalog_sha256": "aa2d9818451f3c957360996c97528efabc6115fc6ed23e228ea4502be94dc9f3",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "student_club",
+      "relative_path": "student_club/student_club.sqlite",
+      "size_bytes": 2641920,
+      "sha256": "eb89bcfe97eefa386a27904ec5aa15159811a7eac894ec659a36e48fa9f76b77",
+      "catalog_sha256": "842c50e07e1cf8e49a8cbadddd52de036d9361e0d0a53dc29443107336c29174",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "superhero",
+      "relative_path": "superhero/superhero.sqlite",
+      "size_bytes": 237568,
+      "sha256": "75e94a2c3236ee3bb2c01fb97a1c4b4c1c269bcefd4eab1d04be323d2d0825b1",
+      "catalog_sha256": "3a6a33bcf14d2309cc89f897f8753abe1cd238671ad5f142e1c3316ef270a6a2",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "thrombosis_prediction",
+      "relative_path": "thrombosis_prediction/thrombosis_prediction.sqlite",
+      "size_bytes": 7327744,
+      "sha256": "87583183c3dc472fba04de702965560a9d7c0a548836613f242317e0eeb83f00",
+      "catalog_sha256": "010d15dad51e88db6b422bd758f24269c4522ff1ec5e94ad4f8e68519ebd05a9",
+      "wal_status": "absent"
+    },
+    {
+      "db_id": "toxicology",
+      "relative_path": "toxicology/toxicology.sqlite",
+      "size_bytes": 2678784,
+      "sha256": "35ef27ae6bdfda530e125ed369666ac0abb8bc8c0bcc0ad09407f547ecb61a93",
+      "catalog_sha256": "373aa18d49d4826e4c525c1d847e7064df219b89e06b414ec6c8b042befed916",
+      "wal_status": "absent"
+    }
+  ],
+  "inventory_sha256": "2f733b0abc232a638818193002b67e079a624670876530174d5382c89e5e6810"
+}

@@ -17,6 +17,8 @@ from schema_safe_bench.datasets import (
 from schema_safe_bench.evaluation import (
     build_schema_evidence_report,
     file_sha256,
+    freeze_full_evaluation,
+    load_freeze_config,
     load_schema_evidence_report,
     run_evaluator_compatibility,
     write_compatibility_report,
@@ -240,6 +242,21 @@ def evaluator_compatibility(
     )
     if report.mismatches:
         raise typer.Exit(code=1)
+
+
+@evaluation_app.command("freeze")
+def freeze_evaluation(
+    config: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+) -> None:
+    """Regenerate the complete provider-free B0-B7 protocol freeze."""
+    freeze_config = load_freeze_config(config)
+    report = freeze_full_evaluation(freeze_config)
+    typer.echo(
+        f"{report.protocol_status}: {report.task_count} tasks, "
+        f"{report.database_count} databases, ${report.projected_reservation_usd:.8f} reserved"
+    )
+    if report.protocol_status != "frozen":
+        raise typer.Exit(code=2)
 
 
 if __name__ == "__main__":

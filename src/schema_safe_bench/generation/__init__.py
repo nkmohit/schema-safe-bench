@@ -5,7 +5,9 @@ from schema_safe_bench.generation.budget import SpendLedger, maximum_request_cos
 from schema_safe_bench.generation.openai_responses import OpenAIResponsesGenerator
 from schema_safe_bench.generation.recording import (
     load_recording,
+    load_recording_with_sources,
     load_repair_recording,
+    load_repair_recording_with_sources,
     recorded_repair_response,
     recorded_response,
     repair_request_sha256,
@@ -20,7 +22,9 @@ __all__ = [
     "OpenAIResponsesGenerator",
     "SpendLedger",
     "load_recording",
+    "load_recording_with_sources",
     "load_repair_recording",
+    "load_repair_recording_with_sources",
     "maximum_request_cost",
     "recorded_repair_response",
     "recorded_response",

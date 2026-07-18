@@ -86,6 +86,10 @@ class SqlValidator:
             available_columns[table_name].update(column.name.casefold() for column in table.columns)
 
         virtual_columns = self._virtual_output_columns(statement)
+        for table_ref in statement.find_all(exp.Table):
+            virtual_name = table_ref.name.casefold()
+            if virtual_name in virtual_columns and table_ref.alias:
+                virtual_columns[table_ref.alias.casefold()] = virtual_columns[virtual_name]
         select_aliases = {
             expression.alias.casefold()
             for select in statement.find_all(exp.Select)

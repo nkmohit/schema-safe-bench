@@ -50,6 +50,160 @@ class TaskManifest(StrictModel):
         return value
 
 
+class FullEvaluationManifest(StrictModel):
+    """Complete, deterministically ordered benchmark population."""
+
+    format_version: Literal["1"] = "1"
+    dataset: Literal["bird-minidev-select"] = "bird-minidev-select"
+    dataset_revision: str
+    selection: Literal["all-select-only-task-id-ascending-v1"] = (
+        "all-select-only-task-id-ascending-v1"
+    )
+    task_source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    population_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    task_count: int = Field(ge=1)
+    database_count: int = Field(ge=1)
+    difficulty_counts: dict[str, int]
+    task_ids: list[str]
+    database_ids: list[str]
+
+    @model_validator(mode="after")
+    def validate_population(self) -> "FullEvaluationManifest":
+        if len(self.task_ids) != self.task_count or len(set(self.task_ids)) != self.task_count:
+            raise ValueError("task count must match unique manifest task IDs")
+        if self.task_ids != sorted(self.task_ids, key=_normalized_id_sort_key):
+            raise ValueError("full manifest task IDs must use normalized ascending order")
+        if len(self.database_ids) != self.database_count:
+            raise ValueError("database count must match database IDs")
+        if self.database_ids != sorted(set(self.database_ids)):
+            raise ValueError("database IDs must be unique and sorted")
+        if sum(self.difficulty_counts.values()) != self.task_count:
+            raise ValueError("difficulty counts must cover the full population")
+        return self
+
+
+def _normalized_id_sort_key(value: str) -> tuple[int, int | str, str]:
+    normalized = value.strip()
+    if normalized.isdecimal():
+        return (0, int(normalized), normalized)
+    return (1, normalized, normalized)
+
+
+class TaskExclusion(StrictModel):
+    source_record_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    raw_task_id: str | None = None
+    reasons: list[
+        Literal[
+            "missing_task_id",
+            "missing_database_id",
+            "missing_question",
+            "missing_reference_sql",
+            "not_single_select_query",
+            "duplicate_task_id",
+        ]
+    ]
+
+
+class FullEvaluationExclusionReport(StrictModel):
+    format_version: Literal["1"] = "1"
+    policy: Literal["select-only-structural-fields-v1"] = "select-only-structural-fields-v1"
+    decision_inputs: list[Literal["task_id", "database_id", "question", "reference_sql_structure"]]
+    prohibited_decision_inputs: list[
+        Literal["model_output", "execution_result", "evaluator_label", "equivalence_outcome"]
+    ]
+    raw_record_count: int = Field(ge=1)
+    included_count: int = Field(ge=1)
+    excluded_count: int = Field(ge=0)
+    reason_counts: dict[str, int]
+    exclusions: list[TaskExclusion]
+
+    @model_validator(mode="after")
+    def validate_counts(self) -> "FullEvaluationExclusionReport":
+        if self.included_count + self.excluded_count != self.raw_record_count:
+            raise ValueError("inclusion and exclusion counts must cover all raw records")
+        if len(self.exclusions) != self.excluded_count:
+            raise ValueError("exclusion count must match exclusion records")
+        return self
+
+
+class DatabaseAsset(StrictModel):
+    db_id: str
+    relative_path: str
+    size_bytes: int = Field(gt=0)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    catalog_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    wal_status: Literal["absent", "empty"]
+
+
+class DatabaseInventory(StrictModel):
+    format_version: Literal["1"] = "1"
+    database_count: int = Field(ge=1)
+    databases: list[DatabaseAsset]
+    inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class FullEvaluationMethodCost(StrictModel):
+    method_id: Literal["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
+    config_path: str
+    config_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reusable_responses: int = Field(ge=0)
+    missing_request_upper_bound: int = Field(ge=0)
+    reservation_usd: float = Field(ge=0)
+    run_limit_usd: float = Field(gt=0)
+    within_run_limit: bool
+    reservation_basis: str
+
+
+class FullEvaluationFreezeReport(StrictModel):
+    format_version: Literal["1"] = "1"
+    protocol_status: Literal[
+        "frozen",
+        "blocked_by_budget",
+        "blocked_by_verification",
+        "blocked_by_budget_and_verification",
+    ]
+    expanded_execution_authorized: Literal[False] = False
+    dataset_provenance_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    database_archive_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    database_archive_size_bytes: int = Field(gt=0)
+    manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    exclusion_report_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    database_inventory_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    evaluator_provenance_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    asset_verification_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prompt_version: str
+    task_count: int = Field(ge=1)
+    database_count: int = Field(ge=1)
+    reference_tasks_passed: int = Field(ge=0)
+    reference_tasks_failed: int = Field(ge=0)
+    reference_failure_task_ids: list[str]
+    methods: list[FullEvaluationMethodCost]
+    unique_missing_request_upper_bound: int = Field(ge=0)
+    projected_reservation_usd: float = Field(ge=0)
+    ledger_spent_usd: float = Field(ge=0)
+    project_limit_usd: float = Field(gt=0, lt=100)
+    projected_balance_usd: float
+    within_project_limit: bool
+    leakage_boundary: list[str]
+    limitations: list[str]
+
+
+class FullEvaluationFreezeConfig(StrictModel):
+    dataset_revision: str
+    tasks_path: Path
+    databases_root: Path
+    dataset_provenance_path: Path
+    evaluator_provenance_path: Path
+    manifest_path: Path
+    exclusion_report_path: Path
+    database_inventory_path: Path
+    asset_verification_path: Path
+    report_path: Path
+    run_config_paths: list[Path]
+    reusable_recording_paths: dict[str, Path]
+    reusable_trace_paths: dict[str, Path]
+
+
 class Column(StrictModel):
     name: str
     data_type: str
@@ -786,6 +940,9 @@ class RepairPolicyConfig(StrictModel):
     first_pass_recording_path: Path
     first_pass_trace_path: Path
     repair_recording_path: Path
+    repair_replay_source_paths: list[Path] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
 
 
 class AbstentionPolicyConfig(StrictModel):
@@ -808,6 +965,9 @@ class HostedRunConfig(StrictModel):
     databases_root: Path
     manifest_path: Path
     recording_path: Path
+    replay_source_paths: list[Path] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
     output_path: Path
     schema_context: HostedSchemaContextConfig | None = None
     reliability: RepairPolicyConfig | AbstentionPolicyConfig | None = Field(
@@ -876,7 +1036,7 @@ class AssetTaskCheck(StrictModel):
 class AssetVerificationReport(StrictModel):
     dataset: str
     dataset_revision: str
-    manifest_seed: int
+    manifest_seed: int | None
     task_count: int
     database_count: int
     passed_tasks: int

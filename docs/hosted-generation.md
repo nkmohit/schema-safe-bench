@@ -54,6 +54,13 @@ The checked pricing table is specific to `gpt-5.6-luna`: `$1.00` per million inp
 
 The machine-readable pricing and API provenance is recorded in [`data/provenance/openai-gpt-5.6-luna.json`](../data/provenance/openai-gpt-5.6-luna.json).
 
+The complete B0-B7 configurations are frozen separately under
+[`configs/runs/full`](../configs/runs/full). Their provider-free preflight preserves the `$5`
+run and `$95` cumulative caps and does not authorize hosted execution. The full runs are blocked
+because B0-B6 exceed the atomic per-run reservation even though the aggregate reservation plus
+the ledger remains below the project maximum. See
+[the full-evaluation freeze](full-evaluation-freeze.md) for the exact per-method constraint.
+
 ## Live generation and deterministic replay
 
 Run a hosted smoke configuration:

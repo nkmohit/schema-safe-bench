@@ -44,6 +44,25 @@ def load_recording(path: Path, *, model_name: str) -> GenerationRecording:
     return recording
 
 
+def load_recording_with_sources(
+    path: Path, *, source_paths: list[Path], model_name: str
+) -> GenerationRecording:
+    """Merge immutable replay sources into a distinct writable recording."""
+    merged = load_recording(path, model_name=model_name)
+    by_task = {record.task_id: record for record in merged.records}
+    for source_path in source_paths:
+        if source_path == path:
+            raise ValueError("recording replay source must differ from the writable recording")
+        source = load_recording(source_path, model_name=model_name)
+        for record in source.records:
+            existing = by_task.get(record.task_id)
+            if existing is not None and existing != record:
+                raise ValueError(f"conflicting replay source for task {record.task_id!r}")
+            by_task[record.task_id] = record
+    merged.records = sorted(by_task.values(), key=lambda item: item.task_id)
+    return merged
+
+
 def load_repair_recording(path: Path, *, model_name: str) -> RepairRecording:
     if not path.exists():
         return RepairRecording(requested_model_name=model_name)
@@ -54,6 +73,26 @@ def load_repair_recording(path: Path, *, model_name: str) -> RepairRecording:
     if len(keys) != len(recording.records):
         raise ValueError("repair recording task-stage keys must be unique")
     return recording
+
+
+def load_repair_recording_with_sources(
+    path: Path, *, source_paths: list[Path], model_name: str
+) -> RepairRecording:
+    """Merge immutable repair sources into a distinct writable recording."""
+    merged = load_repair_recording(path, model_name=model_name)
+    by_key = {(record.task_id, record.stage): record for record in merged.records}
+    for source_path in source_paths:
+        if source_path == path:
+            raise ValueError("repair replay source must differ from the writable recording")
+        source = load_repair_recording(source_path, model_name=model_name)
+        for record in source.records:
+            key = (record.task_id, record.stage)
+            existing = by_key.get(key)
+            if existing is not None and existing != record:
+                raise ValueError(f"conflicting repair replay source for task-stage {key!r}")
+            by_key[key] = record
+    merged.records = sorted(by_key.values(), key=lambda item: (item.task_id, item.stage))
+    return merged
 
 
 def recorded_response(

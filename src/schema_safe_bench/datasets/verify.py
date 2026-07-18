@@ -3,13 +3,12 @@
 from pathlib import Path
 
 from schema_safe_bench.catalog import extract_catalog
-from schema_safe_bench.datasets.bird import find_database, load_bird_tasks
+from schema_safe_bench.datasets.bird import find_database, load_bird_tasks, load_task_manifest
 from schema_safe_bench.execution import execute_read_only
 from schema_safe_bench.models import (
     AssetTaskCheck,
     AssetVerificationReport,
     ExecutionLimits,
-    TaskManifest,
 )
 from schema_safe_bench.validation import SqlValidator
 
@@ -23,7 +22,7 @@ def verify_bird_assets(
 ) -> AssetVerificationReport:
     """Catalog and execute each manifest reference query through project guardrails."""
     tasks = {task.task_id: task for task in load_bird_tasks(tasks_path, select_only=True)}
-    manifest = TaskManifest.model_validate_json(manifest_path.read_text(encoding="utf-8"))
+    manifest = load_task_manifest(manifest_path)
     active_limits = limits or ExecutionLimits(vm_step_budget=10_000_000)
     validators: dict[str, SqlValidator] = {}
     database_paths: dict[str, Path] = {}
@@ -57,7 +56,7 @@ def verify_bird_assets(
     return AssetVerificationReport(
         dataset=manifest.dataset,
         dataset_revision=manifest.dataset_revision,
-        manifest_seed=manifest.seed,
+        manifest_seed=getattr(manifest, "seed", None),
         task_count=len(checks),
         database_count=len(validators),
         passed_tasks=passed,

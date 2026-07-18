@@ -4,6 +4,7 @@ from schema_safe_bench.evaluation.compatibility import (
     run_evaluator_compatibility,
     write_compatibility_report,
 )
+from schema_safe_bench.evaluation.freeze import freeze_full_evaluation, load_freeze_config
 from schema_safe_bench.evaluation.results import compare_results, query_is_order_sensitive
 from schema_safe_bench.evaluation.schema_evidence import (
     build_schema_evidence_report,
@@ -18,6 +19,8 @@ __all__ = [
     "compare_results",
     "evaluate_schema_evidence",
     "file_sha256",
+    "freeze_full_evaluation",
+    "load_freeze_config",
     "load_schema_evidence_report",
     "query_is_order_sensitive",
     "run_evaluator_compatibility",
