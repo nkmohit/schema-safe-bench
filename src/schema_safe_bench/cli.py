@@ -153,11 +153,11 @@ def cache_retrieval_model(
 ) -> None:
     """Download and verify a revision-pinned local dense-retrieval model."""
     run_config = load_hosted_run_config(config)
-    if run_config.method_id != "B3" or not run_config.schema_context:
-        raise typer.BadParameter("configuration must define the B3 dense method")
+    if run_config.method_id not in {"B3", "B4"} or not run_config.schema_context:
+        raise typer.BadParameter("configuration must define a B3 or B4 local-embedding method")
     embedding = run_config.schema_context.embedding
     if embedding is None:
-        raise typer.BadParameter("B3 configuration must define an embedding model")
+        raise typer.BadParameter("retrieval configuration must define an embedding model")
     embedder = cache_sentence_transformer(embedding)
     typer.echo(
         f"Cached {embedding.model_id}@{embedding.revision} "

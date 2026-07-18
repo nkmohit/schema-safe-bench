@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from schema_safe_bench.catalog import extract_catalog
+from schema_safe_bench.models import RetrievalHit, SchemaDocument
 from schema_safe_bench.retrieval import (
     BM25Retriever,
     DenseRetriever,
@@ -41,7 +42,75 @@ def test_dense_and_hybrid_retrieval(sample_database: Path) -> None:
 
     assert any(hit.column_name == "amount" for hit in dense_hits)
     assert len(hybrid_hits) == 2
-    assert set(hybrid_hits[0].component_scores) <= {"bm25", "dense"}
+    assert all(set(hit.component_scores) == {"bm25", "dense"} for hit in hybrid_hits)
+    assert all(set(hit.component_ranks) == {"bm25", "dense"} for hit in hybrid_hits)
+    assert all(set(hit.component_contributions) == {"bm25", "dense"} for hit in hybrid_hits)
+    assert all(
+        hit.score == pytest.approx(sum(hit.component_contributions.values())) for hit in hybrid_hits
+    )
+
+
+class _StaticRetriever:
+    def __init__(self, documents: list[SchemaDocument], hits: list[RetrievalHit]) -> None:
+        self.documents = documents
+        self.hits = hits
+
+    def retrieve(self, question: str, *, top_k: int) -> list[RetrievalHit]:
+        del question
+        return self.hits[:top_k]
+
+
+def test_hybrid_uses_complete_component_ranks_and_document_id_ties() -> None:
+    documents = [
+        SchemaDocument(document_id="column:t.a", table_name="t", column_name="a", text="a"),
+        SchemaDocument(document_id="column:t.b", table_name="t", column_name="b", text="b"),
+    ]
+    lexical = _StaticRetriever(
+        documents,
+        [
+            RetrievalHit(
+                document_id="column:t.a", table_name="t", column_name="a", score=4.0, rank=1
+            ),
+            RetrievalHit(
+                document_id="column:t.b", table_name="t", column_name="b", score=3.0, rank=2
+            ),
+        ],
+    )
+    dense = _StaticRetriever(
+        documents,
+        [
+            RetrievalHit(
+                document_id="column:t.b", table_name="t", column_name="b", score=0.9, rank=1
+            ),
+            RetrievalHit(
+                document_id="column:t.a", table_name="t", column_name="a", score=0.8, rank=2
+            ),
+        ],
+    )
+
+    hits = HybridRetriever(lexical, dense, rank_constant=60).retrieve("question", top_k=2)
+
+    assert [hit.document_id for hit in hits] == ["column:t.a", "column:t.b"]
+    assert hits[0].score == pytest.approx(1 / 61 + 1 / 62)
+    assert hits[0].component_scores == {"bm25": 4.0, "dense": 0.8}
+    assert hits[0].component_ranks == {"bm25": 1, "dense": 2}
+    assert hits[0].component_contributions == pytest.approx({"bm25": 1 / 61, "dense": 1 / 62})
+
+
+def test_hybrid_rejects_invalid_policy_inputs(sample_database: Path) -> None:
+    documents = build_schema_documents(extract_catalog(sample_database))
+    lexical = BM25Retriever(documents)
+    dense = DenseRetriever(documents, _embed)
+
+    with pytest.raises(ValueError, match="rank_constant"):
+        HybridRetriever(lexical, dense, rank_constant=0)
+    with pytest.raises(ValueError, match="same ordered document set"):
+        HybridRetriever(lexical, DenseRetriever(list(reversed(documents)), _embed))
+    duplicate_documents = [documents[0], documents[0]]
+    with pytest.raises(ValueError, match="document IDs must be unique"):
+        HybridRetriever(
+            BM25Retriever(duplicate_documents), DenseRetriever(duplicate_documents, _embed)
+        )
 
 
 def test_dense_retrieval_uses_distinct_query_embedding_and_stable_ties(

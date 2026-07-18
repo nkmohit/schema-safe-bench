@@ -30,3 +30,10 @@ def test_cache_model_command_reports_pinned_model(monkeypatch) -> None:
 
     assert result.exit_code == 0
     assert "BAAI/bge-small-en-v1.5@5c38ec7c" in result.stdout
+
+    hybrid = CliRunner().invoke(
+        app,
+        ["retrieval", "cache-model", "--config", "configs/runs/b4-openai-luna-smoke.yaml"],
+    )
+    assert hybrid.exit_code == 0
+    assert "BAAI/bge-small-en-v1.5@5c38ec7c" in hybrid.stdout

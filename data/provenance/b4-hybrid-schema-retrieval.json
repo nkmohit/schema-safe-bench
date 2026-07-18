@@ -1,0 +1,117 @@
+{
+  "policy_id": "bm25-bge-rrf-schema-documents-v1",
+  "method_id": "B4",
+  "fusion": {
+    "algorithm": "weighted reciprocal rank fusion",
+    "formula": "sum(weight_source / (rank_constant + rank_source(document)))",
+    "source_title": "Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning Methods",
+    "source_authors": ["G. V. Cormack", "C. L. A. Clarke", "Stefan Buettcher"],
+    "source": "https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf",
+    "doi": "10.1145/1571941.1572114",
+    "rank_constant": 60,
+    "lexical_weight": 1.0,
+    "dense_weight": 1.0,
+    "candidate_depth": "all schema documents in each component ranking",
+    "deduplication": "document_id",
+    "final_top_k": 12,
+    "tie_break": "descending fused score, then ascending document_id",
+    "justification": "rank fusion avoids comparing uncalibrated BM25 and cosine scores; equal fixed weights avoid outcome-tuned preference; complete component rankings match the RRF document-set definition and preserve both ranks for every selected hit"
+  },
+  "lexical_component": {
+    "policy_id": "bm25-schema-documents-v1",
+    "implementation": "rank_bm25.BM25Okapi",
+    "rank_bm25_version": "0.2.2",
+    "k1": 1.5,
+    "b": 0.75,
+    "epsilon": 0.25,
+    "tie_break": "ascending document_id"
+  },
+  "dense_component": {
+    "policy_id": "bge-dense-schema-documents-v1",
+    "model_id": "BAAI/bge-small-en-v1.5",
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "source": "https://huggingface.co/BAAI/bge-small-en-v1.5",
+    "license": "MIT",
+    "embedding_dimension": 384,
+    "max_seq_length": 512,
+    "query_prefix": "Represent this sentence for searching relevant passages: ",
+    "document_prefix": "",
+    "similarity": "cosine",
+    "weights_sha256": "3c9f31665447c8911517620762200d2245a2518d6e7208acc78cd9db317e21ad",
+    "tokenizer_sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+    "config_sha256": "094f8e891b932f2000c92cfc663bac4c62069f5d8af5b5278c4306aef3084750",
+    "tie_break": "ascending document_id"
+  },
+  "runtime": {
+    "sentence_transformers": "3.4.1",
+    "torch": "2.13.0",
+    "transformers": "4.57.6",
+    "huggingface_hub": "0.36.2",
+    "tokenizers": "0.22.2",
+    "device": "cpu",
+    "precision": "float32",
+    "batch_size": 32,
+    "normalize_embeddings": true,
+    "deterministic_algorithms": true,
+    "torch_num_threads": 1,
+    "trust_remote_code": false,
+    "run_local_files_only": true,
+    "cache_dir": ".cache/schema-safe-bench/huggingface"
+  },
+  "documents": {
+    "granularity": "one table document followed by one document per column",
+    "ordering": "case-insensitive SQLite catalog-name order, then SQLite pragma_table_info column order",
+    "table_template": "table {table}; columns {column data-type pairs}",
+    "column_template": "table {table}; column {column}; type {type}[ primary key]"
+  },
+  "trace_contract": {
+    "final_hit_score": "weighted reciprocal-rank fusion score",
+    "per_hit_components": "raw BM25 score, cosine score, component ranks, and weighted reciprocal-rank contributions",
+    "embedding_audit": "ordered float32 document-matrix and query-vector SHA-256 digests"
+  },
+  "schema_pack": {
+    "table_hit": "include every column in the selected table",
+    "column_hits_only": "include selected columns, primary-key columns, and selected-table join endpoints",
+    "foreign_keys": "include edges whose endpoint tables are selected, in lexicographic order",
+    "serialization": "one complete table declaration per line followed by FK lines"
+  },
+  "leakage_boundary": {
+    "retrieval_and_fusion_inputs": [
+      "public question",
+      "database catalog without row contents"
+    ],
+    "generation_inputs": [
+      "public question",
+      "retrieved schema pack"
+    ],
+    "evaluator_only": [
+      "public reference SQL",
+      "reference result",
+      "task evidence",
+      "schema-evidence labels"
+    ]
+  },
+  "reproducibility_limitations": [
+    "CPU and math-library differences can produce small dense-score differences",
+    "stable document-ID tie-breaking resolves exact fusion ties but not near-ties that reverse after component rank changes",
+    "hosted SQL generation remains nondeterministic and uses committed response recordings for replay"
+  ],
+  "pre_generation_pack_audit": {
+    "inputs": "public questions and database catalogs only",
+    "tasks": 20,
+    "databases": 10,
+    "retrieval_hits": 240,
+    "schema_chars_total": 17450,
+    "ordered_schema_packs_sha256": "021dfecc493ad1b747679116a256173975cc740327f2331bac9519b7d621c469",
+    "independent_process_digests_matched": true
+  },
+  "implementation": "src/schema_safe_bench/retrieval/schema.py",
+  "method_config": "configs/methods/b4-hybrid-schema-retrieval.yaml",
+  "run_config": "configs/runs/b4-openai-luna-smoke.yaml",
+  "manifest": {
+    "path": "data/processed/manifests/bird-minidev-select-smoke.json",
+    "sha256": "2ff3561dd1fc1170bee64209716a1bc1a9e2976a7b7bf9d3e7a1592a0775d375",
+    "tasks": 20,
+    "databases": 10
+  }
+}

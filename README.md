@@ -57,14 +57,14 @@ uv run schema-safe-bench run smoke --help
 
 See [data/README.md](data/README.md) for the expected BIRD layout and [docs/reproducibility.md](docs/reproducibility.md) for the complete run sequence.
 
-The hosted-generation path uses a locally configured OpenAI credential and `gpt-5.6-luna`, with a project spend guard and deterministic response replay. B0 supplies the full schema, B1 applies a provenance-locked 1,000-character catalog-prefix policy, B2 applies BM25 schema retrieval, and B3 applies revision-pinned local dense retrieval. See [docs/hosted-generation.md](docs/hosted-generation.md). No hosted API calls run in CI.
+The hosted-generation path uses a locally configured OpenAI credential and `gpt-5.6-luna`, with a project spend guard and deterministic response replay. B0 supplies the full schema, B1 applies a provenance-locked 1,000-character catalog-prefix policy, B2 applies BM25 schema retrieval, B3 applies revision-pinned local dense retrieval, and B4 applies locked reciprocal-rank fusion over B2 and B3. See [docs/hosted-generation.md](docs/hosted-generation.md). No hosted API calls run in CI.
 
 Install the optional dense-retrieval stack only for experiments that use a documented local embedding model:
 
 ```bash
 uv sync --extra dense --dev
 uv run schema-safe-bench retrieval cache-model \
-  --config configs/runs/b3-openai-luna-smoke.yaml
+  --config configs/runs/b4-openai-luna-smoke.yaml
 ```
 
 ## Methods

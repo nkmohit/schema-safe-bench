@@ -183,6 +183,8 @@ class RetrievalHit(StrictModel):
     score: float
     rank: int
     component_scores: dict[str, float] = Field(default_factory=dict)
+    component_ranks: dict[str, int] = Field(default_factory=dict)
+    component_contributions: dict[str, float] = Field(default_factory=dict)
 
 
 class SchemaPackTable(StrictModel):
@@ -200,7 +202,7 @@ class SchemaPack(StrictModel):
 
 class RetrievalMetadata(StrictModel):
     policy_id: str
-    strategy: Literal["dense"]
+    strategy: Literal["dense", "hybrid"]
     top_k: int
     document_count: int
     similarity: Literal["cosine"]
@@ -220,6 +222,17 @@ class RetrievalMetadata(StrictModel):
     query_prefix: str
     deterministic_algorithms: Literal[True]
     torch_num_threads: int
+    lexical_algorithm: Literal["rank_bm25.BM25Okapi"] | None = None
+    rank_bm25_version: str | None = None
+    bm25_k1: float | None = None
+    bm25_b: float | None = None
+    bm25_epsilon: float | None = None
+    fusion_algorithm: Literal["weighted-reciprocal-rank-fusion"] | None = None
+    fusion_candidate_depth: Literal["all_documents"] | None = None
+    fusion_lexical_weight: float | None = None
+    fusion_dense_weight: float | None = None
+    fusion_rank_constant: int | None = None
+    fusion_tie_break: Literal["fused_score_desc_document_id_asc"] | None = None
 
 
 class SchemaEvidenceMetrics(StrictModel):
@@ -429,12 +442,16 @@ class SpendBudgetConfig(StrictModel):
 
 
 class HostedSchemaContextConfig(StrictModel):
-    strategy: Literal["full", "length_truncated", "bm25", "dense"]
+    strategy: Literal["full", "length_truncated", "bm25", "dense", "hybrid"]
     max_chars: int | None = Field(default=None, ge=64)
     top_k: int | None = Field(default=None, ge=1)
     k1: float | None = Field(default=None, gt=0)
     b: float | None = Field(default=None, ge=0, le=1)
     epsilon: float | None = Field(default=None, ge=0)
+    candidate_depth: Literal["all_documents"] | None = None
+    lexical_weight: float | None = Field(default=None, ge=0)
+    dense_weight: float | None = Field(default=None, ge=0)
+    rank_constant: int | None = Field(default=None, ge=1)
     policy_id: str | None = None
     embedding: "DenseEmbeddingConfig | None" = None
 
@@ -444,7 +461,17 @@ class HostedSchemaContextConfig(StrictModel):
             if (
                 any(
                     value is not None
-                    for value in (self.max_chars, self.top_k, self.k1, self.b, self.epsilon)
+                    for value in (
+                        self.max_chars,
+                        self.top_k,
+                        self.k1,
+                        self.b,
+                        self.epsilon,
+                        self.candidate_depth,
+                        self.lexical_weight,
+                        self.dense_weight,
+                        self.rank_constant,
+                    )
                 )
                 or self.policy_id is not None
                 or self.embedding is not None
@@ -454,25 +481,79 @@ class HostedSchemaContextConfig(StrictModel):
         if self.strategy == "length_truncated":
             if self.max_chars is None or not self.policy_id:
                 raise ValueError("length-truncated schema context requires max_chars and policy_id")
-            if any(value is not None for value in (self.top_k, self.k1, self.b, self.epsilon)):
+            if any(
+                value is not None
+                for value in (
+                    self.top_k,
+                    self.k1,
+                    self.b,
+                    self.epsilon,
+                    self.candidate_depth,
+                    self.lexical_weight,
+                    self.dense_weight,
+                    self.rank_constant,
+                )
+            ):
                 raise ValueError("length-truncated schema context cannot define BM25 settings")
             if self.embedding is not None:
                 raise ValueError("length-truncated schema context cannot define embeddings")
             return self
         if self.strategy == "bm25":
-            if self.max_chars is not None or self.embedding is not None:
-                raise ValueError("BM25 schema context cannot define max_chars or embeddings")
+            if (
+                self.max_chars is not None
+                or self.embedding is not None
+                or any(
+                    value is not None
+                    for value in (
+                        self.candidate_depth,
+                        self.lexical_weight,
+                        self.dense_weight,
+                        self.rank_constant,
+                    )
+                )
+            ):
+                raise ValueError("BM25 schema context cannot define dense or fusion settings")
             if any(value is None for value in (self.top_k, self.k1, self.b, self.epsilon)):
                 raise ValueError("BM25 schema context requires top_k, k1, b, and epsilon")
             if not self.policy_id:
                 raise ValueError("BM25 schema context requires policy_id")
             return self
+        if self.strategy == "dense":
+            if self.max_chars is not None:
+                raise ValueError("dense schema context cannot define max_chars")
+            if any(
+                value is not None
+                for value in (
+                    self.k1,
+                    self.b,
+                    self.epsilon,
+                    self.candidate_depth,
+                    self.lexical_weight,
+                    self.dense_weight,
+                    self.rank_constant,
+                )
+            ):
+                raise ValueError("dense schema context cannot define lexical or fusion settings")
+            if self.top_k is None or not self.policy_id or self.embedding is None:
+                raise ValueError("dense schema context requires top_k, policy_id, and embedding")
+            return self
         if self.max_chars is not None:
-            raise ValueError("dense schema context cannot define max_chars")
-        if any(value is not None for value in (self.k1, self.b, self.epsilon)):
-            raise ValueError("dense schema context cannot define BM25 settings")
-        if self.top_k is None or not self.policy_id or self.embedding is None:
-            raise ValueError("dense schema context requires top_k, policy_id, and embedding")
+            raise ValueError("hybrid schema context cannot define max_chars")
+        required = (
+            self.top_k,
+            self.k1,
+            self.b,
+            self.epsilon,
+            self.candidate_depth,
+            self.lexical_weight,
+            self.dense_weight,
+            self.rank_constant,
+        )
+        if any(value is None for value in required) or not self.policy_id or self.embedding is None:
+            raise ValueError("hybrid schema context requires lexical, dense, and fusion settings")
+        assert self.lexical_weight is not None and self.dense_weight is not None
+        if self.lexical_weight + self.dense_weight <= 0:
+            raise ValueError("hybrid retrieval weights must have a positive sum")
         return self
 
 
@@ -505,7 +586,7 @@ class DenseEmbeddingConfig(StrictModel):
 
 class HostedRunConfig(StrictModel):
     run_id: str
-    method_id: Literal["B0", "B1", "B2", "B3"]
+    method_id: Literal["B0", "B1", "B2", "B3", "B4"]
     tasks_path: Path
     databases_root: Path
     manifest_path: Path
@@ -535,6 +616,10 @@ class HostedRunConfig(StrictModel):
             not self.schema_context or self.schema_context.strategy != "dense"
         ):
             raise ValueError("B3 requires dense schema context")
+        if self.method_id == "B4" and (
+            not self.schema_context or self.schema_context.strategy != "hybrid"
+        ):
+            raise ValueError("B4 requires hybrid schema context")
         return self
 
 

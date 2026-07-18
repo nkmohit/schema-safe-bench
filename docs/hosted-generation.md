@@ -2,9 +2,9 @@
 
 SchemaSafeBench's first hosted path uses OpenAI's Responses API with `gpt-5.6-luna`. The adapter implements the existing provider-neutral generator contract; evaluator, validator, execution, and result-comparison code remain provider independent.
 
-## Locked B0 through B3 configurations
+## Locked B0 through B4 configurations
 
-The committed smoke configurations are [`configs/runs/b0-openai-luna-smoke.yaml`](../configs/runs/b0-openai-luna-smoke.yaml), [`configs/runs/b1-openai-luna-smoke.yaml`](../configs/runs/b1-openai-luna-smoke.yaml), [`configs/runs/b2-openai-luna-smoke.yaml`](../configs/runs/b2-openai-luna-smoke.yaml), and [`configs/runs/b3-openai-luna-smoke.yaml`](../configs/runs/b3-openai-luna-smoke.yaml). They record:
+The committed smoke configurations are [`configs/runs/b0-openai-luna-smoke.yaml`](../configs/runs/b0-openai-luna-smoke.yaml), [`configs/runs/b1-openai-luna-smoke.yaml`](../configs/runs/b1-openai-luna-smoke.yaml), [`configs/runs/b2-openai-luna-smoke.yaml`](../configs/runs/b2-openai-luna-smoke.yaml), [`configs/runs/b3-openai-luna-smoke.yaml`](../configs/runs/b3-openai-luna-smoke.yaml), and [`configs/runs/b4-openai-luna-smoke.yaml`](../configs/runs/b4-openai-luna-smoke.yaml). They record:
 
 - provider and Responses API endpoint;
 - requested model identifier and the model identifier returned by the API;
@@ -14,16 +14,16 @@ The committed smoke configurations are [`configs/runs/b0-openai-luna-smoke.yaml`
 - `store: false`, so the project does not request server-side response storage;
 - configuration digest and Git software revision.
 
-The B0 prompt contains only the public question and the database's full schema catalog. B1 changes only the schema context with `catalog-character-prefix-v1`. B2 applies `bm25-schema-documents-v1`, and B3 applies `bge-dense-schema-documents-v1` using a revision-pinned local embedding model. These policies are described in [the experiment protocol](experiment-protocol.md#methods). Reference SQL, reference results, task evidence, and evaluator-derived schema labels remain evaluator-only.
+The B0 prompt contains only the public question and the database's full schema catalog. B1 changes only the schema context with `catalog-character-prefix-v1`. B2 applies `bm25-schema-documents-v1`, B3 applies `bge-dense-schema-documents-v1`, and B4 applies `bm25-bge-rrf-schema-documents-v1` over the complete B2 and B3 rankings. These policies are described in [the experiment protocol](experiment-protocol.md#methods). Reference SQL, reference results, task evidence, and evaluator-derived schema labels remain evaluator-only.
 
-## Local B3 model preparation
+## Local B3 and B4 model preparation
 
-Install both optional stacks when preparing a live B3 run, then cache the immutable embedding snapshot:
+Install both optional stacks when preparing a live B3 or B4 run, then cache the immutable embedding snapshot:
 
 ```bash
 uv sync --extra dense --extra openai --dev
 uv run schema-safe-bench retrieval cache-model \
-  --config configs/runs/b3-openai-luna-smoke.yaml
+  --config configs/runs/b4-openai-luna-smoke.yaml
 ```
 
 The cache command downloads only the configured model and revision. It verifies the configured dimension, tokenizer ceiling, and committed file digests. The hosted runner uses `local_files_only: true`; it cannot silently refresh the model during retrieval. The ignored cache is `.cache/schema-safe-bench/huggingface` and is not a distributable benchmark artifact.
@@ -59,7 +59,7 @@ uv run schema-safe-bench run hosted \
   --config configs/runs/b0-openai-luna-smoke.yaml
 ```
 
-Use the corresponding committed run configuration for B1, B2, or B3. All four methods use the same hosted model, prompt version, sampling settings, output cap, task manifest, validator, executor, and evaluator policy.
+Use the corresponding committed run configuration for B1 through B4. All five methods use the same hosted model, prompt version, sampling settings, output cap, task manifest, validator, executor, and evaluator policy.
 
 Each successful response is saved atomically to the configured recording. A rerun validates the request digest and reuses that response without making another API call. To require a fully offline path, use a different output path:
 

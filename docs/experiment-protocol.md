@@ -48,13 +48,21 @@ The full model identity, license, snapshot hashes, runtime versions, embedding s
 
 As with B2, reference SQL, reference results, task evidence, and evaluator-derived identifiers are unavailable to embedding, retrieval, and generation. `reference-sql-identifiers-v1` analysis runs only after generation.
 
+### B4 hybrid retrieval policy
+
+B4 applies `bm25-bge-rrf-schema-documents-v1`. It reuses B2's exact BM25 tokenization and parameters and B3's exact revision-pinned embedding model, cache hashes, query prefix, cosine ranking, runtime, and schema documents. Each component ranks every schema document. The final score is `1 / (60 + bm25_rank) + 1 / (60 + dense_rank)`; the first 12 documents are selected by descending fused score and ascending document ID for exact ties.
+
+Reciprocal-rank fusion is used because BM25 and cosine scores are not calibrated to a common scale. The constant `60` follows the [original RRF formulation](https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf), and equal fixed weights avoid outcome-tuned preference for either component. Complete component rankings ensure every selected document retains both raw scores, both ranks, and both weighted contributions in the trace. Documents are deduplicated by document ID before the final ranking.
+
+Schema-pack primary keys, selected-table join endpoints, foreign keys, and serialization remain identical to B2 and B3. The fusion formula, source, component policies, dependency versions, tie-breaking, trace contract, manifest digest, and leakage boundary are locked in [`data/provenance/b4-hybrid-schema-retrieval.json`](../data/provenance/b4-hybrid-schema-retrieval.json). Reference SQL, reference results, task evidence, and evaluator-derived identifiers are unavailable to both component retrievers, fusion, and generation; schema-evidence analysis remains post-generation only.
+
 ## Required records
 
 Each task trace records:
 
 - run ID, task ID, database ID, and method ID;
 - configuration digest and software revision;
-- selected schema objects, ranks, scores, and serialized schema pack;
+- selected schema objects, ranks, scores, component contributions, and serialized schema pack;
 - prompt-template version and model settings;
 - raw generator response and extracted candidate SQL;
 - validation findings and optional repair record;

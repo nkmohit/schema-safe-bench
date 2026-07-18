@@ -150,19 +150,27 @@ class DenseRetriever:
 
 
 class HybridRetriever:
-    """Fuse lexical and dense ranks with weighted reciprocal rank fusion."""
+    """Fuse complete lexical and dense rankings with weighted reciprocal rank fusion."""
 
     def __init__(
         self,
         lexical: BM25Retriever,
         dense: DenseRetriever,
         *,
-        lexical_weight: float = 0.5,
-        dense_weight: float = 0.5,
+        lexical_weight: float = 1.0,
+        dense_weight: float = 1.0,
         rank_constant: int = 60,
     ) -> None:
         if lexical_weight < 0 or dense_weight < 0 or lexical_weight + dense_weight == 0:
             raise ValueError("retrieval weights must be non-negative with a positive sum")
+        if rank_constant < 1:
+            raise ValueError("rank_constant must be positive")
+        lexical_ids = [document.document_id for document in lexical.documents]
+        dense_ids = [document.document_id for document in dense.documents]
+        if len(lexical_ids) != len(set(lexical_ids)):
+            raise ValueError("hybrid document IDs must be unique")
+        if lexical_ids != dense_ids:
+            raise ValueError("hybrid retrievers must use the same ordered document set")
         self.lexical = lexical
         self.dense = dense
         self.lexical_weight = lexical_weight
@@ -170,7 +178,9 @@ class HybridRetriever:
         self.rank_constant = rank_constant
 
     def retrieve(self, question: str, *, top_k: int) -> list[RetrievalHit]:
-        candidate_k = min(len(self.lexical.documents), max(top_k * 4, top_k))
+        if top_k < 1:
+            raise ValueError("top_k must be positive")
+        candidate_k = len(self.lexical.documents)
         sources = {
             "bm25": (self.lexical.retrieve(question, top_k=candidate_k), self.lexical_weight),
             "dense": (self.dense.retrieve(question, top_k=candidate_k), self.dense_weight),
@@ -178,13 +188,16 @@ class HybridRetriever:
         by_id: dict[str, RetrievalHit] = {}
         fused: dict[str, float] = {}
         components: dict[str, dict[str, float]] = {}
+        component_ranks: dict[str, dict[str, int]] = {}
+        component_contributions: dict[str, dict[str, float]] = {}
         for source, (hits, weight) in sources.items():
             for hit in hits:
                 by_id.setdefault(hit.document_id, hit)
-                fused[hit.document_id] = fused.get(hit.document_id, 0.0) + weight / (
-                    self.rank_constant + hit.rank
-                )
+                contribution = weight / (self.rank_constant + hit.rank)
+                fused[hit.document_id] = fused.get(hit.document_id, 0.0) + contribution
                 components.setdefault(hit.document_id, {})[source] = hit.score
+                component_ranks.setdefault(hit.document_id, {})[source] = hit.rank
+                component_contributions.setdefault(hit.document_id, {})[source] = contribution
         ranked_ids = sorted(fused, key=lambda item: (-fused[item], item))[:top_k]
         return [
             RetrievalHit(
@@ -194,6 +207,8 @@ class HybridRetriever:
                 score=fused[document_id],
                 rank=rank,
                 component_scores=components[document_id],
+                component_ranks=component_ranks[document_id],
+                component_contributions=component_contributions[document_id],
             )
             for rank, document_id in enumerate(ranked_ids, start=1)
         ]

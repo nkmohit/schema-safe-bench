@@ -291,6 +291,8 @@ def test_hosted_method_and_schema_context_must_match() -> None:
         HostedRunConfig(method_id="B2", **common)
     with pytest.raises(ValueError, match="B3 requires"):
         HostedRunConfig(method_id="B3", **common)
+    with pytest.raises(ValueError, match="B4 requires"):
+        HostedRunConfig(method_id="B4", **common)
 
 
 class _FakeDenseEmbedder:
@@ -339,6 +341,33 @@ def _b3_hosted(base: SmokeRunConfig, tmp_path: Path) -> HostedRunConfig:
                 "tokenizer_sha256": "2" * 64,
                 "config_sha256": "3" * 64,
             },
+        },
+    )
+
+
+def _b4_hosted(base: SmokeRunConfig, tmp_path: Path) -> HostedRunConfig:
+    b3 = _b3_hosted(base, tmp_path)
+    assert b3.schema_context and b3.schema_context.embedding
+    return HostedRunConfig(
+        run_id="hosted-b4-fixture",
+        method_id="B4",
+        tasks_path=base.tasks_path,
+        databases_root=base.databases_root,
+        manifest_path=base.manifest_path,
+        recording_path=tmp_path / "b4-recording.json",
+        output_path=tmp_path / "b4" / "trace.jsonl",
+        schema_context={
+            "strategy": "hybrid",
+            "policy_id": "bm25-bge-rrf-schema-documents-v1",
+            "top_k": 12,
+            "k1": 1.5,
+            "b": 0.75,
+            "epsilon": 0.25,
+            "candidate_depth": "all_documents",
+            "lexical_weight": 1.0,
+            "dense_weight": 1.0,
+            "rank_constant": 60,
+            "embedding": b3.schema_context.embedding.model_dump(mode="json"),
         },
     )
 
@@ -431,6 +460,91 @@ def test_hosted_b3_replay_does_not_use_reference_sql_for_retrieval(
     assert summary.tasks == 2
     assert all(trace.generation and trace.generation.replayed for trace in traces)
     assert all(trace.schema_pack and trace.schema_pack.retrieval_metadata for trace in traces)
+
+
+def test_b4_context_records_fusion_contract_and_complete_components(
+    sample_database: Path, tmp_path: Path
+) -> None:
+    base = _run_inputs(sample_database, tmp_path)
+    config = _b4_hosted(base, tmp_path)
+    catalog = extract_catalog(base.databases_root / "shop" / "shop.sqlite", db_id="shop")
+    cache = {}
+
+    pack = _hosted_schema_pack(
+        config,
+        catalog=catalog,
+        question="List customer names",
+        dense_embedder=_FakeDenseEmbedder(),
+        dense_retrievers=cache,
+    )
+
+    assert len(cache) == 1
+    assert pack.retrieval_metadata
+    assert pack.retrieval_metadata.strategy == "hybrid"
+    assert pack.retrieval_metadata.fusion_algorithm == "weighted-reciprocal-rank-fusion"
+    assert pack.retrieval_metadata.fusion_candidate_depth == "all_documents"
+    assert pack.retrieval_metadata.fusion_rank_constant == 60
+    assert pack.retrieval_metadata.bm25_k1 == 1.5
+    assert all(set(hit.component_scores) == {"bm25", "dense"} for hit in pack.retrieval_hits)
+    assert all(set(hit.component_ranks) == {"bm25", "dense"} for hit in pack.retrieval_hits)
+    assert all(set(hit.component_contributions) == {"bm25", "dense"} for hit in pack.retrieval_hits)
+
+
+def test_hosted_b4_replay_does_not_use_evaluator_inputs_for_fusion(
+    sample_database: Path, tmp_path: Path, monkeypatch
+) -> None:
+    base = _run_inputs(sample_database, tmp_path)
+    hosted = _b4_hosted(base, tmp_path)
+    monkeypatch.setattr(
+        "schema_safe_bench.runner.SentenceTransformerEmbedder", lambda _: _FakeDenseEmbedder()
+    )
+    catalog = extract_catalog(base.databases_root / "shop" / "shop.sqlite", db_id="shop")
+    cache = {}
+    recording = load_recording(hosted.recording_path, model_name=hosted.model.model_name)
+    original_packs = {}
+    for record in json.loads(base.tasks_path.read_text()):
+        task_id = str(record["question_id"])
+        pack = _hosted_schema_pack(
+            hosted,
+            catalog=catalog,
+            question=record["question"],
+            dense_embedder=_FakeDenseEmbedder(),
+            dense_retrievers=cache,
+        )
+        original_packs[task_id] = pack
+        request = build_generation_request(
+            question=record["question"],
+            schema_pack=pack,
+            model_name=hosted.model.model_name,
+            temperature=hosted.model.temperature,
+            max_output_tokens=hosted.model.max_output_tokens,
+            reasoning_effort=hosted.model.reasoning_effort,
+        )
+        save_record(
+            recording,
+            hosted.recording_path,
+            task_id=task_id,
+            digest=request_sha256(task_id, request),
+            response=GenerationResponse(
+                raw_output=record["SQL"],
+                model_name="gpt-5.6-luna",
+                requested_model_name="gpt-5.6-luna",
+                provider="openai",
+                endpoint="responses",
+                status="completed",
+            ),
+        )
+    tasks = json.loads(base.tasks_path.read_text())
+    for task in tasks:
+        task["SQL"] = "SELECT count(*) FROM orders"
+        task["evidence"] = "changed evaluator-only input"
+    base.tasks_path.write_text(json.dumps(tasks), encoding="utf-8")
+
+    traces, summary = run_hosted_smoke(hosted, replay_only=True)
+
+    assert summary.tasks == 2
+    assert all(trace.generation and trace.generation.replayed for trace in traces)
+    assert all(trace.schema_pack == original_packs[trace.task_id] for trace in traces)
 
 
 def test_b2_context_depends_only_on_question_and_catalog(

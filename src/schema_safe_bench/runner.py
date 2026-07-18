@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import subprocess
+from importlib.metadata import version
 from pathlib import Path
 
 import yaml
@@ -42,6 +43,7 @@ from schema_safe_bench.reporting import write_run_artifacts
 from schema_safe_bench.retrieval import (
     BM25Retriever,
     DenseRetriever,
+    HybridRetriever,
     SentenceTransformerEmbedder,
     build_schema_documents,
     build_schema_pack,
@@ -243,7 +245,7 @@ def run_hosted_smoke(
     missing_reservations = []
     dense_embedder = None
     dense_retrievers: dict[str, DenseRetriever] = {}
-    if config.method_id == "B3":
+    if config.method_id in {"B3", "B4"}:
         assert config.schema_context and config.schema_context.embedding
         dense_embedder = SentenceTransformerEmbedder(config.schema_context.embedding)
 
@@ -382,14 +384,34 @@ def _hosted_schema_pack(
             embed_query=dense_embedder.embed_query,
         )
         retriever_cache[catalog_key] = retriever
-    hits = retriever.retrieve(question, top_k=config.schema_context.top_k)
+    if config.method_id == "B3":
+        hits = retriever.retrieve(question, top_k=config.schema_context.top_k)
+    else:
+        assert config.schema_context.k1 is not None
+        assert config.schema_context.b is not None
+        assert config.schema_context.epsilon is not None
+        assert config.schema_context.lexical_weight is not None
+        assert config.schema_context.dense_weight is not None
+        assert config.schema_context.rank_constant is not None
+        hits = HybridRetriever(
+            BM25Retriever(
+                documents,
+                k1=config.schema_context.k1,
+                b=config.schema_context.b,
+                epsilon=config.schema_context.epsilon,
+            ),
+            retriever,
+            lexical_weight=config.schema_context.lexical_weight,
+            dense_weight=config.schema_context.dense_weight,
+            rank_constant=config.schema_context.rank_constant,
+        ).retrieve(question, top_k=config.schema_context.top_k)
     assert retriever.query_embedding_sha256 is not None
     pack = build_schema_pack(catalog, hits)
     return pack.model_copy(
         update={
             "retrieval_metadata": RetrievalMetadata(
                 policy_id=config.schema_context.policy_id,
-                strategy="dense",
+                strategy=config.schema_context.strategy,
                 top_k=config.schema_context.top_k,
                 document_count=len(documents),
                 similarity="cosine",
@@ -409,6 +431,21 @@ def _hosted_schema_pack(
                 query_prefix=embedding.query_prefix,
                 deterministic_algorithms=embedding.deterministic_algorithms,
                 torch_num_threads=embedding.torch_num_threads,
+                lexical_algorithm=("rank_bm25.BM25Okapi" if config.method_id == "B4" else None),
+                rank_bm25_version=(version("rank-bm25") if config.method_id == "B4" else None),
+                bm25_k1=config.schema_context.k1,
+                bm25_b=config.schema_context.b,
+                bm25_epsilon=config.schema_context.epsilon,
+                fusion_algorithm=(
+                    "weighted-reciprocal-rank-fusion" if config.method_id == "B4" else None
+                ),
+                fusion_candidate_depth=config.schema_context.candidate_depth,
+                fusion_lexical_weight=config.schema_context.lexical_weight,
+                fusion_dense_weight=config.schema_context.dense_weight,
+                fusion_rank_constant=config.schema_context.rank_constant,
+                fusion_tie_break=(
+                    "fused_score_desc_document_id_asc" if config.method_id == "B4" else None
+                ),
             )
         }
     )

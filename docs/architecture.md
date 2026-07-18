@@ -57,4 +57,6 @@ flowchart TB
 
 Dependency direction follows this evaluation flow; provider adapters must not own validation or execution policy.
 
-Dense retrieval uses a separately installed local model adapter. Model acquisition is an explicit cache-preparation operation; benchmark runs require the immutable revision to be present locally and verify the cached weights, tokenizer, and configuration before embedding. The adapter receives schema documents and the public question only. It has no task object or evaluator input.
+Dense and hybrid retrieval use a separately installed local model adapter. Model acquisition is an explicit cache-preparation operation; benchmark runs require the immutable revision to be present locally and verify the cached weights, tokenizer, and configuration before embedding. The adapter receives schema documents and the public question only. It has no task object or evaluator input.
+
+B4 combines complete BM25 and dense document rankings with equal-weight reciprocal-rank fusion. Fusion operates only on document IDs, component ranks, and component scores produced from the public question and catalog. Reference SQL and evaluator outputs enter only after the hosted response has been fixed.
