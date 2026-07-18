@@ -8,6 +8,7 @@ from schema_safe_bench.models import (
     ComparedRunMetrics,
     PairedRunComparison,
     PairedTaskOutcome,
+    SchemaEvidenceReport,
 )
 
 
@@ -36,16 +37,28 @@ def _single_value(values: set[str | None], label: str) -> str:
     return next(value for value in values if value is not None)
 
 
-def _metrics(traces: list[AuditTrace]) -> ComparedRunMetrics:
+def _metrics(
+    traces: list[AuditTrace], evidence: SchemaEvidenceReport | None = None
+) -> ComparedRunMetrics:
     outcomes = Counter(_outcome(trace) for trace in traces)
     correct = outcomes.pop("correct", 0)
     generations = [trace.generation for trace in traces if trace.generation]
+    run_id = _single_value({trace.run_id for trace in traces}, "run ID")
+    method_id = _single_value({trace.method_id for trace in traces}, "method ID")
+    configuration_sha256 = _single_value(
+        {trace.configuration_sha256 for trace in traces}, "configuration digest"
+    )
+    if evidence and (
+        evidence.run_id != run_id
+        or evidence.method_id != method_id
+        or evidence.configuration_sha256 != configuration_sha256
+        or evidence.aggregate.tasks != len(traces)
+    ):
+        raise ValueError("schema evidence report does not match its trace run")
     return ComparedRunMetrics(
-        run_id=_single_value({trace.run_id for trace in traces}, "run ID"),
-        method_id=_single_value({trace.method_id for trace in traces}, "method ID"),
-        configuration_sha256=_single_value(
-            {trace.configuration_sha256 for trace in traces}, "configuration digest"
-        ),
+        run_id=run_id,
+        method_id=method_id,
+        configuration_sha256=configuration_sha256,
         software_revisions=sorted(
             revision
             for revision in {trace.software_revision for trace in traces}
@@ -68,11 +81,16 @@ def _metrics(traces: list[AuditTrace]) -> ComparedRunMetrics:
         estimated_cost_usd=round(
             sum(response.estimated_cost_usd or 0.0 for response in generations), 8
         ),
+        schema_evidence=evidence.aggregate if evidence else None,
     )
 
 
 def compare_paired_runs(
-    baseline_traces: list[AuditTrace], treatment_traces: list[AuditTrace]
+    baseline_traces: list[AuditTrace],
+    treatment_traces: list[AuditTrace],
+    *,
+    baseline_evidence: SchemaEvidenceReport | None = None,
+    treatment_evidence: SchemaEvidenceReport | None = None,
 ) -> PairedRunComparison:
     baseline = {trace.task_id: trace for trace in baseline_traces}
     treatment = {trace.task_id: trace for trace in treatment_traces}
@@ -108,8 +126,10 @@ def compare_paired_runs(
             )
         )
 
-    baseline_metrics = _metrics(baseline_traces)
-    treatment_metrics = _metrics(treatment_traces)
+    if (baseline_evidence is None) != (treatment_evidence is None):
+        raise ValueError("paired comparisons require both schema evidence reports or neither")
+    baseline_metrics = _metrics(baseline_traces, baseline_evidence)
+    treatment_metrics = _metrics(treatment_traces, treatment_evidence)
     improved = [item.task_id for item in paired if item.correctness_change == "improved"]
     regressed = [item.task_id for item in paired if item.correctness_change == "regressed"]
     unchanged = [item.task_id for item in paired if item.correctness_change == "unchanged"]
@@ -146,6 +166,8 @@ def write_run_comparison(comparison: PairedRunComparison, path: Path) -> Path:
         raise FileExistsError(f"Comparison output already exists: {path}")
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(comparison.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    temporary.write_text(
+        comparison.model_dump_json(indent=2, exclude_none=True) + "\n", encoding="utf-8"
+    )
     temporary.replace(path)
     return path

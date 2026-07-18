@@ -15,8 +15,12 @@ from schema_safe_bench.datasets import (
     write_manifest,
 )
 from schema_safe_bench.evaluation import (
+    build_schema_evidence_report,
+    file_sha256,
+    load_schema_evidence_report,
     run_evaluator_compatibility,
     write_compatibility_report,
+    write_schema_evidence_report,
 )
 from schema_safe_bench.models import ExecutionLimits
 from schema_safe_bench.reporting import compare_paired_runs, load_traces, write_run_comparison
@@ -145,11 +149,44 @@ def compare_results_command(
     baseline: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
     treatment: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
     output: Annotated[Path, typer.Option(dir_okay=False)],
+    baseline_evidence: Annotated[
+        Path | None, typer.Option(exists=True, dir_okay=False, readable=True)
+    ] = None,
+    treatment_evidence: Annotated[
+        Path | None, typer.Option(exists=True, dir_okay=False, readable=True)
+    ] = None,
 ) -> None:
     """Write a paired comparison for two trace files with identical task IDs."""
-    comparison = compare_paired_runs(load_traces(baseline), load_traces(treatment))
+    comparison = compare_paired_runs(
+        load_traces(baseline),
+        load_traces(treatment),
+        baseline_evidence=(
+            load_schema_evidence_report(baseline_evidence) if baseline_evidence else None
+        ),
+        treatment_evidence=(
+            load_schema_evidence_report(treatment_evidence) if treatment_evidence else None
+        ),
+    )
     path = write_run_comparison(comparison, output)
     typer.echo(f"Wrote paired comparison to {path}")
+
+
+@results_app.command("schema-evidence")
+def schema_evidence_command(
+    trace: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    tasks: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    databases: Annotated[Path, typer.Option(exists=True, file_okay=False, readable=True)],
+    output: Annotated[Path, typer.Option(dir_okay=False)],
+) -> None:
+    """Measure prompt-visible schema evidence after generation has completed."""
+    report = build_schema_evidence_report(
+        load_traces(trace),
+        tasks_path=tasks,
+        databases_root=databases,
+        source_trace_sha256=file_sha256(trace),
+    )
+    path = write_schema_evidence_report(report, output)
+    typer.echo(f"Wrote evaluator-only schema evidence to {path}")
 
 
 @evaluation_app.command("compatibility")

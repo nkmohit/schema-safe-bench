@@ -1,0 +1,16 @@
+method_id: B2
+schema_context:
+  strategy: bm25
+  policy_id: bm25-schema-documents-v1
+  top_k: 12
+  k1: 1.5
+  b: 0.75
+  epsilon: 0.25
+reliability:
+  validate: true
+  max_repairs: 0
+  allow_abstain: true
+execution:
+  row_limit: 100000
+  vm_step_budget: 1000000
+  progress_interval: 1000

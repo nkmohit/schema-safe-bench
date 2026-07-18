@@ -2,9 +2,9 @@
 
 SchemaSafeBench's first hosted path uses OpenAI's Responses API with `gpt-5.6-luna`. The adapter implements the existing provider-neutral generator contract; evaluator, validator, execution, and result-comparison code remain provider independent.
 
-## Locked B0 and B1 configurations
+## Locked B0, B1, and B2 configurations
 
-The committed smoke configurations are [`configs/runs/b0-openai-luna-smoke.yaml`](../configs/runs/b0-openai-luna-smoke.yaml) and [`configs/runs/b1-openai-luna-smoke.yaml`](../configs/runs/b1-openai-luna-smoke.yaml). They record:
+The committed smoke configurations are [`configs/runs/b0-openai-luna-smoke.yaml`](../configs/runs/b0-openai-luna-smoke.yaml), [`configs/runs/b1-openai-luna-smoke.yaml`](../configs/runs/b1-openai-luna-smoke.yaml), and [`configs/runs/b2-openai-luna-smoke.yaml`](../configs/runs/b2-openai-luna-smoke.yaml). They record:
 
 - provider and Responses API endpoint;
 - requested model identifier and the model identifier returned by the API;
@@ -14,7 +14,7 @@ The committed smoke configurations are [`configs/runs/b0-openai-luna-smoke.yaml`
 - `store: false`, so the project does not request server-side response storage;
 - configuration digest and Git software revision.
 
-The B0 prompt contains only the public question and the database's full schema catalog. B1 changes only the schema context by applying the provenance-locked `catalog-character-prefix-v1` policy described in [the experiment protocol](experiment-protocol.md#b1-length-truncation-policy). Reference SQL and reference results remain evaluator-only.
+The B0 prompt contains only the public question and the database's full schema catalog. B1 changes only the schema context by applying the provenance-locked `catalog-character-prefix-v1` policy. B2 changes only schema context by applying `bm25-schema-documents-v1` to the public question and schema catalog. Both policies are described in [the experiment protocol](experiment-protocol.md#methods). Reference SQL, reference results, and evaluator-derived schema labels remain evaluator-only.
 
 ## Local credential setup
 
@@ -47,7 +47,7 @@ uv run schema-safe-bench run hosted \
   --config configs/runs/b0-openai-luna-smoke.yaml
 ```
 
-Use `configs/runs/b1-openai-luna-smoke.yaml` for B1. Both methods use the same model, prompt version, sampling settings, output cap, task manifest, validator, executor, and evaluator policy.
+Use `configs/runs/b1-openai-luna-smoke.yaml` for B1 and `configs/runs/b2-openai-luna-smoke.yaml` for B2. All three methods use the same model, prompt version, sampling settings, output cap, task manifest, validator, executor, and evaluator policy.
 
 Each successful response is saved atomically to the configured recording. A rerun validates the request digest and reuses that response without making another API call. To require a fully offline path, use a different output path:
 
@@ -59,6 +59,18 @@ uv run schema-safe-bench run hosted \
 ```
 
 Replay fails if any task is missing or if the question, schema pack, prompt version, model, or generation settings change. This prevents stale responses from being silently evaluated under a different request contract.
+
+After a trace is complete, schema evidence can be regenerated without provider dependencies or credentials:
+
+```bash
+uv run schema-safe-bench results schema-evidence \
+  --trace results/b2-openai-gpt-5-6-luna-smoke/trace.jsonl \
+  --tasks data/raw/bird-minidev/mini_dev_sqlite.json \
+  --databases data/raw/bird-minidev/dev_databases \
+  --output results/schema-evidence-smoke/b2.json
+```
+
+The report records the source trace digest and derives required identifiers only inside evaluation. It never modifies the recorded request or response.
 
 ## Verified smoke artifact
 

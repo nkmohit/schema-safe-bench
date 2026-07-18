@@ -1,0 +1,60 @@
+{
+  "policy_id": "bm25-schema-documents-v1",
+  "method_id": "B2",
+  "tokenization": {
+    "pattern": "[A-Za-z0-9]+",
+    "normalization": "Unicode casefold before ASCII-alphanumeric extraction"
+  },
+  "documents": {
+    "granularity": "one table document followed by one document per column",
+    "ordering": "case-insensitive SQLite catalog-name order, then SQLite pragma_table_info column order",
+    "table_template": "table {table}; columns {column data-type pairs}",
+    "column_template": "table {table}; column {column}; type {type}[ primary key]"
+  },
+  "ranking": {
+    "implementation": "rank_bm25.BM25Okapi",
+    "rank_bm25_version": "0.2.2",
+    "k1": 1.5,
+    "b": 0.75,
+    "epsilon": 0.25,
+    "top_k": 12,
+    "zero_score_policy": "retain zero-score documents when needed to fill top_k",
+    "tie_break": "ascending document_id"
+  },
+  "schema_pack": {
+    "table_hit": "include every column in the selected table",
+    "column_hits_only": "include selected columns, primary-key columns, and selected-table join endpoints",
+    "foreign_keys": "include edges whose endpoint tables are selected, in lexicographic order",
+    "serialization": "one complete table declaration per line followed by FK lines"
+  },
+  "leakage_boundary": {
+    "retrieval_inputs": ["public question", "database catalog without row contents"],
+    "generation_inputs": ["public question", "retrieved schema pack"],
+    "evaluator_only": ["public reference SQL", "reference result", "schema-evidence labels"]
+  },
+  "implementation": "src/schema_safe_bench/retrieval/schema.py",
+  "method_config": "configs/methods/b2-bm25-schema-retrieval.yaml",
+  "run_config": "configs/runs/b2-openai-luna-smoke.yaml",
+  "manifest": {
+    "path": "data/processed/manifests/bird-minidev-select-smoke.json",
+    "sha256": "2ff3561dd1fc1170bee64209716a1bc1a9e2976a7b7bf9d3e7a1592a0775d375",
+    "tasks": 20,
+    "databases": 10
+  },
+  "smoke_manifest_effect": {
+    "retrieval_hits": 240,
+    "schema_chars_min": 237,
+    "schema_chars_median": 403.5,
+    "schema_chars_max": 2591,
+    "schema_chars_total": 15827,
+    "selected_tables_min": 1,
+    "selected_tables_median": 3.0,
+    "selected_tables_max": 6,
+    "selected_columns_min": 11,
+    "selected_columns_median": 20.0,
+    "selected_columns_max": 123,
+    "evaluator_only_full_table_recall_tasks": 10,
+    "evaluator_only_full_column_recall_tasks": 8,
+    "evaluator_only_retrieval_miss_tasks": 12
+  }
+}

@@ -24,7 +24,7 @@ def test_b1_policy_is_locked_to_config_and_manifest() -> None:
 
     assert run.method_id == method["method_id"] == provenance["method_id"] == "B1"
     assert run.schema_context is not None
-    assert run.schema_context.model_dump() == method["schema_context"]
+    assert run.schema_context.model_dump(exclude_none=True) == method["schema_context"]
     assert run.schema_context.policy_id == provenance["policy_id"]
     assert run.schema_context.max_chars == provenance["max_chars"] == 1000
     assert (

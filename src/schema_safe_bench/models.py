@@ -197,6 +197,23 @@ class SchemaPack(StrictModel):
     serialized: str
 
 
+class SchemaEvidenceMetrics(StrictModel):
+    required_tables: list[str]
+    required_columns: list[str]
+    selected_tables: list[str]
+    selected_columns: list[str]
+    missing_tables: list[str]
+    missing_columns: list[str]
+    table_true_positives: int
+    column_true_positives: int
+    table_recall: float
+    table_precision: float
+    column_recall: float
+    column_precision: float
+    combined_recall: float
+    combined_precision: float
+
+
 class PromptMessage(StrictModel):
     role: Literal["system", "user"]
     content: str
@@ -260,6 +277,7 @@ class AuditTrace(StrictModel):
     configuration_sha256: str | None = None
     software_revision: str | None = None
     schema_pack: SchemaPack | None = None
+    schema_evidence: SchemaEvidenceMetrics | None = None
     generation: GenerationResponse | None = None
     repair_count: int = Field(default=0, ge=0, le=1)
     validation: ValidationResult
@@ -282,6 +300,40 @@ class RunSummary(StrictModel):
     estimated_cost_usd: float = 0.0
 
 
+class SchemaEvidenceAggregate(StrictModel):
+    tasks: int
+    tasks_with_full_table_recall: int
+    tasks_with_full_column_recall: int
+    retrieval_misses: int
+    macro_table_recall: float
+    macro_table_precision: float
+    macro_column_recall: float
+    macro_column_precision: float
+    macro_combined_recall: float
+    macro_combined_precision: float
+    micro_table_recall: float
+    micro_table_precision: float
+    micro_column_recall: float
+    micro_column_precision: float
+
+
+class SchemaEvidenceTask(StrictModel):
+    task_id: str
+    db_id: str
+    evidence: SchemaEvidenceMetrics
+
+
+class SchemaEvidenceReport(StrictModel):
+    format_version: Literal["1"] = "1"
+    policy: Literal["reference-sql-identifiers-v1"] = "reference-sql-identifiers-v1"
+    source_trace_sha256: str
+    run_id: str
+    method_id: str
+    configuration_sha256: str
+    aggregate: SchemaEvidenceAggregate
+    tasks: list[SchemaEvidenceTask]
+
+
 class ComparedRunMetrics(StrictModel):
     run_id: str
     method_id: str
@@ -298,6 +350,7 @@ class ComparedRunMetrics(StrictModel):
     input_tokens: int
     output_tokens: int
     estimated_cost_usd: float
+    schema_evidence: SchemaEvidenceAggregate | None = None
 
 
 class PairedTaskOutcome(StrictModel):
@@ -351,24 +404,44 @@ class SpendBudgetConfig(StrictModel):
 
 
 class HostedSchemaContextConfig(StrictModel):
-    strategy: Literal["full", "length_truncated"]
+    strategy: Literal["full", "length_truncated", "bm25"]
     max_chars: int | None = Field(default=None, ge=64)
+    top_k: int | None = Field(default=None, ge=1)
+    k1: float | None = Field(default=None, gt=0)
+    b: float | None = Field(default=None, ge=0, le=1)
+    epsilon: float | None = Field(default=None, ge=0)
     policy_id: str | None = None
 
     @model_validator(mode="after")
     def validate_strategy(self) -> "HostedSchemaContextConfig":
         if self.strategy == "full":
-            if self.max_chars is not None or self.policy_id is not None:
-                raise ValueError("full schema context cannot define truncation settings")
+            if (
+                any(
+                    value is not None
+                    for value in (self.max_chars, self.top_k, self.k1, self.b, self.epsilon)
+                )
+                or self.policy_id is not None
+            ):
+                raise ValueError("full schema context cannot define selection settings")
             return self
-        if self.max_chars is None or not self.policy_id:
-            raise ValueError("length-truncated schema context requires max_chars and policy_id")
+        if self.strategy == "length_truncated":
+            if self.max_chars is None or not self.policy_id:
+                raise ValueError("length-truncated schema context requires max_chars and policy_id")
+            if any(value is not None for value in (self.top_k, self.k1, self.b, self.epsilon)):
+                raise ValueError("length-truncated schema context cannot define BM25 settings")
+            return self
+        if self.max_chars is not None:
+            raise ValueError("BM25 schema context cannot define max_chars")
+        if any(value is None for value in (self.top_k, self.k1, self.b, self.epsilon)):
+            raise ValueError("BM25 schema context requires top_k, k1, b, and epsilon")
+        if not self.policy_id:
+            raise ValueError("BM25 schema context requires policy_id")
         return self
 
 
 class HostedRunConfig(StrictModel):
     run_id: str
-    method_id: Literal["B0", "B1"]
+    method_id: Literal["B0", "B1", "B2"]
     tasks_path: Path
     databases_root: Path
     manifest_path: Path
@@ -386,8 +459,14 @@ class HostedRunConfig(StrictModel):
             if self.schema_context and self.schema_context.strategy != "full":
                 raise ValueError("B0 requires full schema context")
             return self
-        if not self.schema_context or self.schema_context.strategy != "length_truncated":
+        if self.method_id == "B1" and (
+            not self.schema_context or self.schema_context.strategy != "length_truncated"
+        ):
             raise ValueError("B1 requires length-truncated schema context")
+        if self.method_id == "B2" and (
+            not self.schema_context or self.schema_context.strategy != "bm25"
+        ):
+            raise ValueError("B2 requires BM25 schema context")
         return self
 
 

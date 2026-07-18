@@ -17,8 +17,13 @@ from schema_safe_bench.models import (
 )
 from schema_safe_bench.prompting import build_generation_request
 from schema_safe_bench.reporting import write_run_artifacts
-from schema_safe_bench.retrieval import full_schema_pack, length_truncated_schema_pack
+from schema_safe_bench.retrieval import (
+    build_schema_documents,
+    full_schema_pack,
+    length_truncated_schema_pack,
+)
 from schema_safe_bench.runner import (
+    _hosted_schema_pack,
     load_hosted_run_config,
     load_run_config,
     run_hosted_smoke,
@@ -281,3 +286,94 @@ def test_hosted_method_and_schema_context_must_match() -> None:
             },
             **common,
         )
+    with pytest.raises(ValueError, match="B2 requires"):
+        HostedRunConfig(method_id="B2", **common)
+
+
+def test_b2_context_depends_only_on_question_and_catalog(
+    sample_database: Path, tmp_path: Path
+) -> None:
+    base = _run_inputs(sample_database, tmp_path)
+    config = HostedRunConfig(
+        run_id="hosted-b2-fixture",
+        method_id="B2",
+        tasks_path=base.tasks_path,
+        databases_root=base.databases_root,
+        manifest_path=base.manifest_path,
+        recording_path=tmp_path / "recording.json",
+        output_path=tmp_path / "trace.jsonl",
+        schema_context={
+            "strategy": "bm25",
+            "policy_id": "bm25-schema-documents-v1",
+            "top_k": 12,
+            "k1": 1.5,
+            "b": 0.75,
+            "epsilon": 0.25,
+        },
+    )
+    catalog = extract_catalog(base.databases_root / "shop" / "shop.sqlite", db_id="shop")
+
+    first = _hosted_schema_pack(config, catalog=catalog, question="List customer names")
+    second = _hosted_schema_pack(config, catalog=catalog, question="List customer names")
+
+    assert first == second
+    assert len(first.retrieval_hits) == min(12, len(build_schema_documents(catalog)))
+    assert [hit.rank for hit in first.retrieval_hits] == list(
+        range(1, len(first.retrieval_hits) + 1)
+    )
+
+
+def test_hosted_b2_replays_with_ranked_schema_evidence(
+    sample_database: Path, tmp_path: Path
+) -> None:
+    base = _run_inputs(sample_database, tmp_path)
+    hosted = HostedRunConfig(
+        run_id="hosted-b2-replay",
+        method_id="B2",
+        tasks_path=base.tasks_path,
+        databases_root=base.databases_root,
+        manifest_path=base.manifest_path,
+        recording_path=tmp_path / "b2-recording.json",
+        output_path=tmp_path / "b2" / "trace.jsonl",
+        schema_context={
+            "strategy": "bm25",
+            "policy_id": "bm25-schema-documents-v1",
+            "top_k": 12,
+            "k1": 1.5,
+            "b": 0.75,
+            "epsilon": 0.25,
+        },
+    )
+    catalog = extract_catalog(base.databases_root / "shop" / "shop.sqlite", db_id="shop")
+    recording = load_recording(hosted.recording_path, model_name=hosted.model.model_name)
+    for record in json.loads(base.tasks_path.read_text()):
+        task_id = str(record["question_id"])
+        pack = _hosted_schema_pack(hosted, catalog=catalog, question=record["question"])
+        request = build_generation_request(
+            question=record["question"],
+            schema_pack=pack,
+            model_name=hosted.model.model_name,
+            temperature=hosted.model.temperature,
+            max_output_tokens=hosted.model.max_output_tokens,
+            reasoning_effort=hosted.model.reasoning_effort,
+        )
+        save_record(
+            recording,
+            hosted.recording_path,
+            task_id=task_id,
+            digest=request_sha256(task_id, request),
+            response=GenerationResponse(
+                raw_output=record["SQL"],
+                model_name="gpt-5.6-luna",
+                requested_model_name="gpt-5.6-luna",
+                provider="openai",
+                endpoint="responses",
+                status="completed",
+            ),
+        )
+
+    traces, summary = run_hosted_smoke(hosted, replay_only=True)
+
+    assert summary.correct == 2
+    assert all(trace.schema_evidence for trace in traces)
+    assert all(trace.schema_pack and trace.schema_pack.retrieval_hits for trace in traces)

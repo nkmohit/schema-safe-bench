@@ -51,6 +51,8 @@ Acceptance: tests demonstrate that rejected SQL cannot reach the executor and eq
 - [x] Define a provider-neutral generator interface and offline replay adapter.
 - [x] Add one hosted-model adapter after credentials and provider choice are configured locally.
 - [x] Lock a deterministic B1 length-truncation policy with prompt-faithful schema traces.
+- [x] Lock deterministic B2 BM25 ranking, tie-breaking, join-edge, and serialization rules.
+- [x] Add evaluator-only prompt-visible schema-evidence measurement and reporting.
 - [ ] Record the embedding model identifier and immutable revision for dense runs.
 
 Acceptance: prompts contain only the question and allowed schema context; gold SQL has no API path into generation or repair builders.
@@ -62,7 +64,7 @@ Acceptance: prompts contain only the question and allowed schema context; gold S
 - [x] Record raw output separately from extracted candidate SQL.
 - [x] Bound repair count in the trace schema.
 - [x] Run and publish paired B0 and B1 smoke artifacts with representative failures.
-- [ ] Run B0 through B7 on the deterministic public smoke manifest.
+- [ ] Run and publish B2 through B7 on the deterministic public smoke manifest.
 - [ ] Freeze the full evaluation configuration before producing final BIRD results.
 - [ ] Publish raw distributable traces, aggregate tables, and representative failure cases.
 - [ ] Add paired uncertainty and significance analysis only when complete paired predictions exist.

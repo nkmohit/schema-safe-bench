@@ -53,6 +53,21 @@ def test_schema_pack_includes_join_edges(sample_database: Path) -> None:
     assert {table.name for table in pack.tables} == {"customers", "orders"}
     assert "orders.customer_id -> customers.customer_id" in pack.foreign_keys
     assert "FK orders.customer_id" in pack.serialized
+    visible = {table.name: {column.name for column in table.columns} for table in pack.tables}
+    assert "customer_id" in visible["orders"]
+    assert "customer_id" in visible["customers"]
+
+
+def test_bm25_zero_score_ties_use_document_id(sample_database: Path) -> None:
+    documents = build_schema_documents(extract_catalog(sample_database))
+    hits = BM25Retriever(documents, k1=1.5, b=0.75, epsilon=0.25).retrieve(
+        "termabsentfromcatalog", top_k=4
+    )
+
+    assert [hit.document_id for hit in hits] == sorted(
+        document.document_id for document in documents
+    )[:4]
+    assert all(hit.score == 0.0 for hit in hits)
 
 
 def test_full_schema_pack_can_be_truncated(sample_database: Path) -> None:

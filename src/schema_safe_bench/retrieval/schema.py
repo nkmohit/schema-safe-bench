@@ -51,11 +51,25 @@ def build_schema_documents(catalog: Catalog) -> list[SchemaDocument]:
 
 
 class BM25Retriever:
-    def __init__(self, documents: list[SchemaDocument]) -> None:
+    def __init__(
+        self,
+        documents: list[SchemaDocument],
+        *,
+        k1: float = 1.5,
+        b: float = 0.75,
+        epsilon: float = 0.25,
+    ) -> None:
         if not documents:
             raise ValueError("at least one schema document is required")
+        if k1 <= 0 or not 0 <= b <= 1 or epsilon < 0:
+            raise ValueError("invalid BM25 parameters")
         self.documents = documents
-        self._index = BM25Okapi([_tokens(document.text) for document in documents])
+        self._index = BM25Okapi(
+            [_tokens(document.text) for document in documents],
+            k1=k1,
+            b=b,
+            epsilon=epsilon,
+        )
 
     def retrieve(self, question: str, *, top_k: int) -> list[RetrievalHit]:
         if top_k < 1:
@@ -251,11 +265,34 @@ def build_schema_pack(
     max_chars: int | None = None,
 ) -> SchemaPack:
     """Serialize selected tables and columns plus join edges between selected tables."""
-    selected_tables = {hit.table_name for hit in hits}
+    if include_all:
+        selected_tables = {table.name for table in catalog.tables}
+    else:
+        selected_tables = {hit.table_name for hit in hits}
     selected_columns: dict[str, set[str]] = {}
     for hit in hits:
         if hit.column_name:
             selected_columns.setdefault(hit.table_name, set()).add(hit.column_name)
+
+    foreign_keys = sorted(
+        {
+            f"{table.name}.{foreign_key.from_column} -> "
+            f"{foreign_key.to_table}.{foreign_key.to_column}"
+            for table in catalog.tables
+            if table.name in selected_tables
+            for foreign_key in table.foreign_keys
+            if foreign_key.to_table in selected_tables
+        }
+    )
+    join_columns: dict[str, set[str]] = {}
+    for table in catalog.tables:
+        if table.name not in selected_tables:
+            continue
+        for foreign_key in table.foreign_keys:
+            if foreign_key.to_table not in selected_tables:
+                continue
+            join_columns.setdefault(table.name, set()).add(foreign_key.from_column)
+            join_columns.setdefault(foreign_key.to_table, set()).add(foreign_key.to_column)
 
     pack_tables: list[SchemaPackTable] = []
     for table in catalog.tables:
@@ -266,24 +303,13 @@ def build_schema_pack(
         if chosen and not any(
             hit.table_name == table.name and hit.column_name is None for hit in hits
         ):
+            required_columns = chosen | join_columns.get(table.name, set())
             columns = [
                 column
                 for column in columns
-                if column.name in chosen or column.primary_key_position > 0
+                if column.name in required_columns or column.primary_key_position > 0
             ]
         pack_tables.append(SchemaPackTable(name=table.name, columns=columns))
-
-    names = {table.name for table in pack_tables}
-    foreign_keys = sorted(
-        {
-            f"{table.name}.{foreign_key.from_column} -> "
-            f"{foreign_key.to_table}.{foreign_key.to_column}"
-            for table in catalog.tables
-            if table.name in names
-            for foreign_key in table.foreign_keys
-            if foreign_key.to_table in names
-        }
-    )
     serialized = _serialize_schema(pack_tables, foreign_keys)
     if max_chars is not None:
         serialized = serialized[:max_chars]

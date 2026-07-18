@@ -1,0 +1,33 @@
+run_id: bird-minidev-select-smoke-b2-openai-gpt-5-6-luna
+method_id: B2
+tasks_path: data/raw/bird-minidev/mini_dev_sqlite.json
+databases_root: data/raw/bird-minidev/dev_databases
+manifest_path: data/processed/manifests/bird-minidev-select-smoke.json
+recording_path: data/processed/predictions/b2-openai-gpt-5-6-luna-smoke.json
+output_path: results/b2-openai-gpt-5-6-luna-smoke/trace.jsonl
+schema_context:
+  strategy: bm25
+  policy_id: bm25-schema-documents-v1
+  top_k: 12
+  k1: 1.5
+  b: 0.75
+  epsilon: 0.25
+environment_path: .env
+model:
+  provider: openai
+  model_name: gpt-5.6-luna
+  endpoint: responses
+  temperature: 0.0
+  reasoning_effort: none
+  max_output_tokens: 1000
+  store: false
+  timeout_seconds: 120
+  max_retries: 2
+budget:
+  project_limit_usd: 95.0
+  run_limit_usd: 5.0
+  ledger_path: .cache/schema-safe-bench/openai-spend.json
+execution:
+  row_limit: 100000
+  vm_step_budget: 1000000
+  progress_interval: 1000

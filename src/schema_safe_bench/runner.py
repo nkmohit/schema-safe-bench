@@ -10,7 +10,7 @@ import yaml
 
 from schema_safe_bench.catalog import extract_catalog
 from schema_safe_bench.datasets import find_database, load_bird_tasks
-from schema_safe_bench.evaluation import compare_results
+from schema_safe_bench.evaluation import compare_results, evaluate_schema_evidence
 from schema_safe_bench.execution import execute_read_only
 from schema_safe_bench.generation import (
     OpenAIResponsesGenerator,
@@ -38,7 +38,13 @@ from schema_safe_bench.models import (
 )
 from schema_safe_bench.prompting import build_generation_request, extract_candidate_sql
 from schema_safe_bench.reporting import write_run_artifacts
-from schema_safe_bench.retrieval import full_schema_pack, length_truncated_schema_pack
+from schema_safe_bench.retrieval import (
+    BM25Retriever,
+    build_schema_documents,
+    build_schema_pack,
+    full_schema_pack,
+    length_truncated_schema_pack,
+)
 from schema_safe_bench.validation import SqlValidator
 
 
@@ -112,6 +118,11 @@ def _evaluate_prediction(
     if not reference_validation.accepted:
         raise ValueError(f"Reference SQL failed validation for task {task.task_id!r}")
     reference_execution = execute_read_only(database, reference_validation, limits=execution_limits)
+    schema_evidence = (
+        evaluate_schema_evidence(reference_validation, prediction.schema_pack)
+        if prediction.schema_pack
+        else None
+    )
     comparison = None
     failure_label = None
     if prediction.generation and prediction.generation.status not in {"offline", "completed"}:
@@ -142,6 +153,7 @@ def _evaluate_prediction(
         configuration_sha256=configuration_sha256,
         software_revision=software_revision,
         schema_pack=prediction.schema_pack,
+        schema_evidence=schema_evidence,
         generation=prediction.generation,
         validation=validation,
         execution=execution,
@@ -234,13 +246,7 @@ def run_hosted_smoke(
             raise KeyError(f"Manifest task {task_id!r} is absent from the dataset") from exc
         database = find_database(config.databases_root, task.db_id)
         catalog = extract_catalog(database, db_id=task.db_id)
-        if config.method_id == "B0":
-            schema_pack = full_schema_pack(catalog)
-        else:
-            assert config.schema_context and config.schema_context.max_chars
-            schema_pack = length_truncated_schema_pack(
-                catalog, max_chars=config.schema_context.max_chars
-            )
+        schema_pack = _hosted_schema_pack(config, catalog=catalog, question=task.question)
         request = build_generation_request(
             question=task.question,
             schema_pack=schema_pack,
@@ -315,6 +321,28 @@ def run_hosted_smoke(
             )
         )
     return traces, _summarize(config.run_id, config.method_id, traces)
+
+
+def _hosted_schema_pack(config: HostedRunConfig, *, catalog: Catalog, question: str) -> SchemaPack:
+    """Build prompt context from generation-safe inputs only."""
+    if config.method_id == "B0":
+        return full_schema_pack(catalog)
+    assert config.schema_context is not None
+    if config.method_id == "B1":
+        assert config.schema_context.max_chars is not None
+        return length_truncated_schema_pack(catalog, max_chars=config.schema_context.max_chars)
+    assert config.schema_context.top_k is not None
+    assert config.schema_context.k1 is not None
+    assert config.schema_context.b is not None
+    assert config.schema_context.epsilon is not None
+    documents = build_schema_documents(catalog)
+    hits = BM25Retriever(
+        documents,
+        k1=config.schema_context.k1,
+        b=config.schema_context.b,
+        epsilon=config.schema_context.epsilon,
+    ).retrieve(question, top_k=config.schema_context.top_k)
+    return build_schema_pack(catalog, hits)
 
 
 def run_and_write(config_path: Path) -> tuple[Path, Path]:
