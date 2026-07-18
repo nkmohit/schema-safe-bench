@@ -180,6 +180,23 @@ The committed B5 run links every trace to implementation revision `793b615134274
 
 Every B5 trace preserves up to 48 reranked candidates, all B4 component scores, ranks, and reciprocal-rank contributions, raw cross-encoder logits, pre- and post-rerank ranks, selected status, both local model revisions and digests, serialized schema pack, request digest, generation metadata, and evaluator outcomes. The paired B0-through-B4 comparisons are linked from the [B5 result](../results/b5-openai-gpt-5-6-luna-smoke/README.md).
 
+The committed B6 run links every trace to implementation revision `52c1232c6b86413f8ea7d7b7daad4246aba70c7f` and records:
+
+| Record | Value |
+|---|---:|
+| Tasks | 20 |
+| Correct | 3 |
+| Semantic mismatches | 9 |
+| Safe abstentions | 7 |
+| Validator rejections | 1 |
+| Execution errors or interruptions | 0 |
+| Eligible / attempted repairs | 2 / 2 |
+| Reused first-pass cost | `$0.013090` |
+| Incremental repair cost | `$0.001678` |
+| Total B6 token cost | `$0.014768` |
+
+Every B6 trace preserves the B4 request digest, candidate, schema pack, and generation; normalized repair cause; stage-bound repair digest and generation when eligible; final validation, execution, comparison, and evaluator-only evidence. The [B4 controlled comparison](../results/b4-vs-b6-openai-gpt-5-6-luna-smoke/README.md) reports unchanged correctness and the two terminal-state transitions.
+
 ## Limitations
 
 - Token cost is calculated from API-reported usage and the checked Luna price table; it does not include taxes, account credits, or unrelated provider usage.

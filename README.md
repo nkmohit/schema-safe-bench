@@ -114,6 +114,8 @@ The B4 smoke artifact applies the locked 12-hit reciprocal-rank fusion policy ov
 
 The B5 smoke artifact reranks up to 48 B4 candidates with the pinned local MiniLM cross-encoder before selecting 12 hits. It records 2 correct results, 8 semantic mismatches, 8 safe abstentions, and 2 validator rejections at an estimated token cost of `$0.010070`. Evaluator-only evidence finds complete required-table coverage on 11 tasks and complete required-column coverage on 8; see [results/b5-openai-gpt-5-6-luna-smoke](results/b5-openai-gpt-5-6-luna-smoke/README.md).
 
+The B6 smoke artifact reuses the committed B4 first pass and applies one repair only to its two validator-or-controlled-execution eligible tasks. It records 3 correct results, 9 semantic mismatches, 7 safe abstentions, and 1 validator rejection. Incremental repair cost is `$0.001678`; total B6 token cost including the reused first pass is `$0.014768`. Correctness is unchanged from B4; see [results/b6-openai-gpt-5-6-luna-smoke](results/b6-openai-gpt-5-6-luna-smoke/README.md).
+
 ## Responsible use and limitations
 
 The validator and SQLite sandbox provide defense in depth for controlled experiments. They are not a substitute for database permissions, workload isolation, query review, or production security controls. Generated SQL can execute successfully and still be semantically wrong.

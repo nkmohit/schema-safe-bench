@@ -1,0 +1,46 @@
+{
+  "format_version": "1",
+  "provider": "openai",
+  "requested_model_name": "gpt-5.6-luna",
+  "stage": "repair-1",
+  "records": [
+    {
+      "task_id": "116",
+      "stage": "repair-1",
+      "request_sha256": "25888ad473762af631fa79a43924f509906cea7e41b8980faf1282551105a6c8",
+      "response": {
+        "raw_output": "WITH first_loan AS (\n  SELECT account_id\n  FROM loan\n  WHERE date = '1993-07-05'\n  ORDER BY loan_id\n  LIMIT 1\n)\nSELECT\n  (MAX(CASE WHEN t.date = '1998-12-27' THEN t.balance END) -\n   MAX(CASE WHEN t.date = '1993-03-22' THEN t.balance END)) * 1.0 /\n  MAX(CASE WHEN t.date = '1993-03-22' THEN t.balance END) AS increase_rate\nFROM trans AS t\nJOIN first_loan AS f ON f.account_id = t.account_id\nWHERE t.date IN ('1993-03-22', '1998-12-27');",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 367,
+        "cached_input_tokens": 0,
+        "output_tokens": 160,
+        "request_elapsed_ms": 3594.12875000271,
+        "estimated_cost_usd": 0.001327,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1185",
+      "stage": "repair-1",
+      "request_sha256": "9badd725edb5e027ac2708b0b4ab338203de3c64c97c667936d614cf81cdfd83",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 309,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 987.7774170017801,
+        "estimated_cost_usd": 0.000351,
+        "replayed": false
+      }
+    }
+  ]
+}

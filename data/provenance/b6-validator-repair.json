@@ -60,6 +60,18 @@
     ]
   },
   "accounting": "traces and summaries distinguish reused B4 first-pass usage, incremental repair usage, and total B6 usage",
+  "published_result": {
+    "implementation_revision": "52c1232c6b86413f8ea7d7b7daad4246aba70c7f",
+    "repair_recording_sha256": "208a77acf6114fde36ceb112ddf71ab0980a2b71ebce085471e0f7653558263a",
+    "trace_sha256": "38a650c6892382d36992997c33628b15614d905fc0748acdd65b17e103603b8d",
+    "summary_sha256": "126d4a68ac5916a45e59f92e8cfafa457fd8808fb0423d774dc34c751c1777b4",
+    "schema_evidence_sha256": "c63796754a6334228172992cc6297ad33568fb3d13bc7fdf672ab212202f6fa5",
+    "eligible": 2,
+    "attempted": 2,
+    "correct": 3,
+    "incremental_repair_cost_usd": 0.001678,
+    "total_cost_usd": 0.014768
+  },
   "method_config": "configs/methods/b6-hybrid-validator-repair.yaml",
   "run_config": "configs/runs/b6-openai-luna-smoke.yaml",
   "manifest": {

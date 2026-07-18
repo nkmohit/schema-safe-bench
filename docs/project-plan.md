@@ -71,7 +71,8 @@ Acceptance: prompts contain only the question and allowed schema context; gold S
 - [x] Run and publish the B4 smoke artifact, schema evidence, and paired B0/B1/B2/B3 comparisons.
 - [x] Lock the B5 reranker model, candidate depth, scoring, ordering, audit, and leakage policy.
 - [x] Run and publish B5 on the deterministic public smoke manifest.
-- [ ] Run and publish B6 and B7 on the deterministic public smoke manifest.
+- [x] Lock and publish B6 bounded repair on the deterministic public smoke manifest.
+- [ ] Run and publish B7 on the deterministic public smoke manifest.
 - [ ] Freeze the full evaluation configuration before producing final BIRD results.
 - [ ] Publish raw distributable traces, aggregate tables, and representative failure cases.
 - [ ] Add paired uncertainty and significance analysis only when complete paired predictions exist.
