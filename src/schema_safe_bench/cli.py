@@ -24,7 +24,7 @@ from schema_safe_bench.evaluation import (
 )
 from schema_safe_bench.models import ExecutionLimits
 from schema_safe_bench.reporting import compare_paired_runs, load_traces, write_run_comparison
-from schema_safe_bench.retrieval import cache_sentence_transformer
+from schema_safe_bench.retrieval import cache_cross_encoder, cache_sentence_transformer
 from schema_safe_bench.runner import load_hosted_run_config, run_and_write, run_hosted_and_write
 
 app = typer.Typer(no_args_is_help=True, help="Schema-grounded text-to-SQL evaluation.")
@@ -153,8 +153,8 @@ def cache_retrieval_model(
 ) -> None:
     """Download and verify a revision-pinned local dense-retrieval model."""
     run_config = load_hosted_run_config(config)
-    if run_config.method_id not in {"B3", "B4"} or not run_config.schema_context:
-        raise typer.BadParameter("configuration must define a B3 or B4 local-embedding method")
+    if run_config.method_id not in {"B3", "B4", "B5"} or not run_config.schema_context:
+        raise typer.BadParameter("configuration must define a B3, B4, or B5 local-model method")
     embedding = run_config.schema_context.embedding
     if embedding is None:
         raise typer.BadParameter("retrieval configuration must define an embedding model")
@@ -164,6 +164,13 @@ def cache_retrieval_model(
         f"({embedding.embedding_dimension} dimensions, sentence-transformers "
         f"{embedder.library_version})"
     )
+    reranker = run_config.schema_context.reranker
+    if reranker is not None:
+        cross_encoder = cache_cross_encoder(reranker)
+        typer.echo(
+            f"Cached {reranker.model_id}@{reranker.revision} "
+            f"(raw logits, sentence-transformers {cross_encoder.library_version})"
+        )
 
 
 @results_app.command("compare")

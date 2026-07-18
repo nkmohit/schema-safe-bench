@@ -56,6 +56,16 @@ Reciprocal-rank fusion is used because BM25 and cosine scores are not calibrated
 
 Schema-pack primary keys, selected-table join endpoints, foreign keys, and serialization remain identical to B2 and B3. The fusion formula, source, component policies, dependency versions, tie-breaking, trace contract, manifest digest, and leakage boundary are locked in [`data/provenance/b4-hybrid-schema-retrieval.json`](../data/provenance/b4-hybrid-schema-retrieval.json). Reference SQL, reference results, task evidence, and evaluator-derived identifiers are unavailable to both component retrievers, fusion, and generation; schema-evidence analysis remains post-generation only.
 
+### B5 hybrid-plus-reranking policy
+
+B5 applies `bm25-bge-rrf-minilm-rerank-schema-documents-v1`. Its first stage is the unchanged B4 policy: complete BM25 and dense rankings, equal-weight RRF, rank constant 60, document-ID deduplication, and fused-score/document-ID ordering. The first 48 fused documents form a fixed reranker candidate set. The candidate depth is part of the frozen policy and is not adjusted from smoke outcomes.
+
+`cross-encoder/ms-marco-MiniLM-L6-v2` is pinned to immutable revision `c5ee24cb16019beea0893ab7796b1df96625c6b8` and runs locally on CPU in float32. Each input is the pair `(public question, schema document text)`. The tokenizer applies `longest_first` truncation at 512 tokens. Inference uses deterministic PyTorch algorithms, one Torch thread, batch size 32, no worker processes, evaluation mode, and no gradient calculation through Sentence Transformers. B5 uses the model's single raw relevance logit with Identity activation; it applies no sigmoid and no relevance threshold.
+
+Candidates are ordered by descending raw logit, ascending pre-rerank rank, and ascending document ID. The first 12 become the prompt-visible schema hits. Every available candidate, up to the fixed depth of 48, remains in the audit trace with its B4 fused score, pre-rerank rank, raw BM25 and dense scores, component ranks, RRF contributions, raw reranker score, post-rerank rank, and selected status. Schema-pack primary keys, selected-table join endpoints, foreign keys, and serialization remain unchanged.
+
+The model identity, Apache-2.0 license, architecture, immutable revision, input and scoring contract, tokenizer limit, file hashes, dependency versions, local cache requirements, ordering, and reproducibility limits are locked in [`data/provenance/b5-hybrid-reranking.json`](../data/provenance/b5-hybrid-reranking.json). Reference SQL, reference results, task evidence, and evaluator-derived identifiers remain unavailable to retrieval, fusion, reranking, prompt construction, and generation. Schema evidence is computed only after generation.
+
 ## Required records
 
 Each task trace records:

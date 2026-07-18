@@ -42,6 +42,7 @@ from schema_safe_bench.prompting import build_generation_request, extract_candid
 from schema_safe_bench.reporting import write_run_artifacts
 from schema_safe_bench.retrieval import (
     BM25Retriever,
+    CrossEncoderReranker,
     DenseRetriever,
     HybridRetriever,
     SentenceTransformerEmbedder,
@@ -49,6 +50,7 @@ from schema_safe_bench.retrieval import (
     build_schema_pack,
     full_schema_pack,
     length_truncated_schema_pack,
+    rerank_hits,
 )
 from schema_safe_bench.validation import SqlValidator
 
@@ -244,10 +246,14 @@ def run_hosted_smoke(
     ] = []
     missing_reservations = []
     dense_embedder = None
+    reranker = None
     dense_retrievers: dict[str, DenseRetriever] = {}
-    if config.method_id in {"B3", "B4"}:
+    if config.method_id in {"B3", "B4", "B5"}:
         assert config.schema_context and config.schema_context.embedding
         dense_embedder = SentenceTransformerEmbedder(config.schema_context.embedding)
+    if config.method_id == "B5":
+        assert config.schema_context and config.schema_context.reranker
+        reranker = CrossEncoderReranker(config.schema_context.reranker)
 
     for task_id in manifest.task_ids:
         try:
@@ -262,6 +268,9 @@ def run_hosted_smoke(
             question=task.question,
             dense_embedder=dense_embedder,
             dense_retrievers=dense_retrievers,
+            reranker=reranker,
+            configuration_sha256=configuration_sha256,
+            software_revision=software_revision,
         )
         request = build_generation_request(
             question=task.question,
@@ -346,6 +355,9 @@ def _hosted_schema_pack(
     question: str,
     dense_embedder: SentenceTransformerEmbedder | None = None,
     dense_retrievers: dict[str, DenseRetriever] | None = None,
+    reranker: CrossEncoderReranker | None = None,
+    configuration_sha256: str | None = None,
+    software_revision: str | None = None,
 ) -> SchemaPack:
     """Build prompt context from generation-safe inputs only."""
     if config.method_id == "B0":
@@ -384,6 +396,7 @@ def _hosted_schema_pack(
             embed_query=dense_embedder.embed_query,
         )
         retriever_cache[catalog_key] = retriever
+    reranking_candidates = []
     if config.method_id == "B3":
         hits = retriever.retrieve(question, top_k=config.schema_context.top_k)
     else:
@@ -393,7 +406,7 @@ def _hosted_schema_pack(
         assert config.schema_context.lexical_weight is not None
         assert config.schema_context.dense_weight is not None
         assert config.schema_context.rank_constant is not None
-        hits = HybridRetriever(
+        hybrid = HybridRetriever(
             BM25Retriever(
                 documents,
                 k1=config.schema_context.k1,
@@ -404,11 +417,30 @@ def _hosted_schema_pack(
             lexical_weight=config.schema_context.lexical_weight,
             dense_weight=config.schema_context.dense_weight,
             rank_constant=config.schema_context.rank_constant,
-        ).retrieve(question, top_k=config.schema_context.top_k)
+        )
+        if config.method_id == "B5":
+            assert config.schema_context.reranker_candidate_depth is not None
+            assert config.schema_context.reranker is not None
+            if reranker is None:
+                reranker = CrossEncoderReranker(config.schema_context.reranker)
+            first_stage_hits = hybrid.retrieve(
+                question, top_k=config.schema_context.reranker_candidate_depth
+            )
+            hits, reranking_candidates = rerank_hits(
+                question,
+                documents,
+                first_stage_hits,
+                score=reranker.score,
+                top_k=config.schema_context.top_k,
+            )
+        else:
+            hits = hybrid.retrieve(question, top_k=config.schema_context.top_k)
     assert retriever.query_embedding_sha256 is not None
     pack = build_schema_pack(catalog, hits)
+    reranker_config = config.schema_context.reranker
     return pack.model_copy(
         update={
+            "reranking_candidates": reranking_candidates,
             "retrieval_metadata": RetrievalMetadata(
                 policy_id=config.schema_context.policy_id,
                 strategy=config.schema_context.strategy,
@@ -431,22 +463,49 @@ def _hosted_schema_pack(
                 query_prefix=embedding.query_prefix,
                 deterministic_algorithms=embedding.deterministic_algorithms,
                 torch_num_threads=embedding.torch_num_threads,
-                lexical_algorithm=("rank_bm25.BM25Okapi" if config.method_id == "B4" else None),
-                rank_bm25_version=(version("rank-bm25") if config.method_id == "B4" else None),
+                lexical_algorithm=(
+                    "rank_bm25.BM25Okapi" if config.method_id in {"B4", "B5"} else None
+                ),
+                rank_bm25_version=(
+                    version("rank-bm25") if config.method_id in {"B4", "B5"} else None
+                ),
                 bm25_k1=config.schema_context.k1,
                 bm25_b=config.schema_context.b,
                 bm25_epsilon=config.schema_context.epsilon,
                 fusion_algorithm=(
-                    "weighted-reciprocal-rank-fusion" if config.method_id == "B4" else None
+                    "weighted-reciprocal-rank-fusion" if config.method_id in {"B4", "B5"} else None
                 ),
                 fusion_candidate_depth=config.schema_context.candidate_depth,
                 fusion_lexical_weight=config.schema_context.lexical_weight,
                 fusion_dense_weight=config.schema_context.dense_weight,
                 fusion_rank_constant=config.schema_context.rank_constant,
                 fusion_tie_break=(
-                    "fused_score_desc_document_id_asc" if config.method_id == "B4" else None
+                    "fused_score_desc_document_id_asc" if config.method_id in {"B4", "B5"} else None
                 ),
-            )
+                reranker_candidate_depth=config.schema_context.reranker_candidate_depth,
+                reranker_model_id=(reranker_config.model_id if reranker_config else None),
+                reranker_model_revision=(reranker_config.revision if reranker_config else None),
+                reranker_score_interpretation=(
+                    reranker_config.score_interpretation if reranker_config else None
+                ),
+                reranker_pair_format=(reranker_config.pair_format if reranker_config else None),
+                reranker_truncation=(reranker_config.truncation if reranker_config else None),
+                reranker_batch_size=(reranker_config.batch_size if reranker_config else None),
+                reranker_max_length=(reranker_config.max_length if reranker_config else None),
+                reranker_tie_break=(
+                    "score_desc_pre_rerank_rank_asc_document_id_asc" if reranker_config else None
+                ),
+                reranker_threshold=("none" if reranker_config else None),
+                reranker_library=("sentence-transformers" if reranker_config else None),
+                reranker_library_version=(
+                    reranker.library_version if reranker_config and reranker else None
+                ),
+                reranker_dependencies=(
+                    reranker.dependency_versions if reranker_config and reranker else None
+                ),
+                reranker_configuration_sha256=(configuration_sha256 if reranker_config else None),
+                reranker_software_revision=(software_revision if reranker_config else None),
+            ),
         }
     )
 

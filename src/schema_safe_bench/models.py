@@ -187,6 +187,22 @@ class RetrievalHit(StrictModel):
     component_contributions: dict[str, float] = Field(default_factory=dict)
 
 
+class RerankingCandidate(StrictModel):
+    """Complete first-stage and reranker audit record for one B5 candidate."""
+
+    document_id: str
+    table_name: str
+    column_name: str | None = None
+    first_stage_score: float
+    pre_rerank_rank: int = Field(ge=1)
+    component_scores: dict[str, float]
+    component_ranks: dict[str, int]
+    component_contributions: dict[str, float]
+    reranker_score: float
+    post_rerank_rank: int = Field(ge=1)
+    selected: bool
+
+
 class SchemaPackTable(StrictModel):
     name: str
     columns: list[Column]
@@ -197,12 +213,15 @@ class SchemaPack(StrictModel):
     foreign_keys: list[str]
     retrieval_hits: list[RetrievalHit] = Field(default_factory=list)
     retrieval_metadata: "RetrievalMetadata | None" = None
+    reranking_candidates: list[RerankingCandidate] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
     serialized: str
 
 
 class RetrievalMetadata(StrictModel):
     policy_id: str
-    strategy: Literal["dense", "hybrid"]
+    strategy: Literal["dense", "hybrid", "hybrid_rerank"]
     top_k: int
     document_count: int
     similarity: Literal["cosine"]
@@ -233,6 +252,45 @@ class RetrievalMetadata(StrictModel):
     fusion_dense_weight: float | None = None
     fusion_rank_constant: int | None = None
     fusion_tie_break: Literal["fused_score_desc_document_id_asc"] | None = None
+    reranker_candidate_depth: int | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_model_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    reranker_model_revision: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_score_interpretation: Literal["raw_logit"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_pair_format: Literal["question_schema_document"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_truncation: Literal["longest_first"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_batch_size: int | None = Field(default=None, exclude_if=lambda value: value is None)
+    reranker_max_length: int | None = Field(default=None, exclude_if=lambda value: value is None)
+    reranker_tie_break: Literal["score_desc_pre_rerank_rank_asc_document_id_asc"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_threshold: Literal["none"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_library: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    reranker_library_version: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_dependencies: dict[str, str] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reranker_configuration_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+        exclude_if=lambda value: value is None,
+    )
+    reranker_software_revision: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class SchemaEvidenceMetrics(StrictModel):
@@ -442,7 +500,7 @@ class SpendBudgetConfig(StrictModel):
 
 
 class HostedSchemaContextConfig(StrictModel):
-    strategy: Literal["full", "length_truncated", "bm25", "dense", "hybrid"]
+    strategy: Literal["full", "length_truncated", "bm25", "dense", "hybrid", "hybrid_rerank"]
     max_chars: int | None = Field(default=None, ge=64)
     top_k: int | None = Field(default=None, ge=1)
     k1: float | None = Field(default=None, gt=0)
@@ -454,9 +512,15 @@ class HostedSchemaContextConfig(StrictModel):
     rank_constant: int | None = Field(default=None, ge=1)
     policy_id: str | None = None
     embedding: "DenseEmbeddingConfig | None" = None
+    reranker_candidate_depth: int | None = Field(default=None, ge=1)
+    reranker: "RerankerConfig | None" = None
 
     @model_validator(mode="after")
     def validate_strategy(self) -> "HostedSchemaContextConfig":
+        if self.strategy != "hybrid_rerank" and (
+            self.reranker_candidate_depth is not None or self.reranker is not None
+        ):
+            raise ValueError("only hybrid-rerank schema context can define reranker settings")
         if self.strategy == "full":
             if (
                 any(
@@ -554,6 +618,13 @@ class HostedSchemaContextConfig(StrictModel):
         assert self.lexical_weight is not None and self.dense_weight is not None
         if self.lexical_weight + self.dense_weight <= 0:
             raise ValueError("hybrid retrieval weights must have a positive sum")
+        if self.strategy == "hybrid":
+            return self
+        if self.reranker_candidate_depth is None or self.reranker is None:
+            raise ValueError("hybrid-rerank schema context requires reranker settings")
+        assert self.top_k is not None
+        if self.reranker_candidate_depth < self.top_k:
+            raise ValueError("reranker candidate depth must be at least top_k")
         return self
 
 
@@ -584,9 +655,38 @@ class DenseEmbeddingConfig(StrictModel):
         return value
 
 
+class RerankerConfig(StrictModel):
+    model_id: str
+    revision: str = Field(pattern=r"^[0-9a-f]{40}$")
+    cache_dir: Path = Path(".cache/schema-safe-bench/huggingface")
+    device: Literal["cpu"] = "cpu"
+    precision: Literal["float32"] = "float32"
+    batch_size: int = Field(default=32, ge=1)
+    max_length: int = Field(default=512, ge=1)
+    truncation: Literal["longest_first"] = "longest_first"
+    score_interpretation: Literal["raw_logit"] = "raw_logit"
+    pair_format: Literal["question_schema_document"] = "question_schema_document"
+    weights_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    tokenizer_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    tokenizer_config_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    special_tokens_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    config_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    deterministic_algorithms: Literal[True] = True
+    torch_num_threads: int = Field(default=1, ge=1)
+    trust_remote_code: Literal[False] = False
+    local_files_only: Literal[True] = True
+
+    @field_validator("model_id")
+    @classmethod
+    def non_empty_model_id(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("reranker model ID must not be empty")
+        return value.strip()
+
+
 class HostedRunConfig(StrictModel):
     run_id: str
-    method_id: Literal["B0", "B1", "B2", "B3", "B4"]
+    method_id: Literal["B0", "B1", "B2", "B3", "B4", "B5"]
     tasks_path: Path
     databases_root: Path
     manifest_path: Path
@@ -620,6 +720,10 @@ class HostedRunConfig(StrictModel):
             not self.schema_context or self.schema_context.strategy != "hybrid"
         ):
             raise ValueError("B4 requires hybrid schema context")
+        if self.method_id == "B5" and (
+            not self.schema_context or self.schema_context.strategy != "hybrid_rerank"
+        ):
+            raise ValueError("B5 requires hybrid-rerank schema context")
         return self
 
 

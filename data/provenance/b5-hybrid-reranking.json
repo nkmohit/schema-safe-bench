@@ -1,0 +1,111 @@
+{
+  "policy_id": "bm25-bge-rrf-minilm-rerank-schema-documents-v1",
+  "method_id": "B5",
+  "first_stage": {
+    "policy_id": "bm25-bge-rrf-schema-documents-v1",
+    "unchanged_from": "B4",
+    "candidate_construction": "complete BM25 and dense rankings fused with equal-weight reciprocal rank fusion",
+    "candidate_depth": 48,
+    "rank_constant": 60,
+    "lexical_weight": 1,
+    "dense_weight": 1,
+    "tie_break": "descending fused score, then ascending document_id",
+    "deduplication": "document_id"
+  },
+  "reranker": {
+    "model_id": "cross-encoder/ms-marco-MiniLM-L6-v2",
+    "revision": "c5ee24cb16019beea0893ab7796b1df96625c6b8",
+    "source": "https://huggingface.co/cross-encoder/ms-marco-MiniLM-L6-v2",
+    "license": "Apache-2.0",
+    "architecture": "BertForSequenceClassification, 6 layers, hidden size 384, 12 attention heads, one output label",
+    "intended_domain": "English passage ranking trained on MS MARCO",
+    "input_format": "(public question, schema document text)",
+    "tokenizer_limit": 512,
+    "truncation": "longest_first",
+    "score_interpretation": "raw single relevance logit with Identity activation; higher is more relevant",
+    "threshold": "none",
+    "final_top_k": 12,
+    "tie_break": "descending reranker score, then ascending pre-rerank rank, then ascending document_id",
+    "justification": "a compact locally executable English passage-ranking cross-encoder provides direct pairwise relevance scoring while fixed depth and ordering avoid smoke-outcome tuning",
+    "files": {
+      "model.safetensors": "821d1aa69520101d6e0737f78a042ae25b19e5cb9160701909d10434f4aeb0ae",
+      "tokenizer.json": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+      "tokenizer_config.json": "a5c2e5a7b1a29a0702cd28c08a399b5ecc110c263009d17f7e3b415f25905fd8",
+      "special_tokens_map.json": "3c3507f36dff57bce437223db3b3081d1e2b52ec3e56ee55438193ecb2c94dd6",
+      "config.json": "380e02c93f431831be65d99a4e7e5f67c133985bf2e77d9d4eba46847190bacc"
+    }
+  },
+  "runtime": {
+    "sentence_transformers": "3.4.1",
+    "torch": "2.13.0",
+    "transformers": "4.57.6",
+    "huggingface_hub": "0.36.2",
+    "tokenizers": "0.22.2",
+    "device": "cpu",
+    "precision": "float32",
+    "batch_size": 32,
+    "num_workers": 0,
+    "deterministic_algorithms": true,
+    "torch_num_threads": 1,
+    "trust_remote_code": false,
+    "run_local_files_only": true,
+    "cache_dir": ".cache/schema-safe-bench/huggingface"
+  },
+  "trace_contract": {
+    "selected_hits": "12 hits ranked by raw reranker logit",
+    "all_candidates": "up to 48 records per task, limited by schema-document count, with document identity, B4 fused score and pre-rank, raw BM25 and dense scores, component ranks and RRF contributions, reranker score, post-rank, and selected status",
+    "metadata": "reranker identity, immutable revision, pair format, truncation, batch size, score semantics, tie-break, configuration digest, software revision, dependencies, and local-model settings"
+  },
+  "schema_pack": {
+    "table_hit": "include every column in the selected table",
+    "column_hits_only": "include selected columns, primary-key columns, and selected-table join endpoints",
+    "foreign_keys": "include edges whose endpoint tables are selected, in lexicographic order",
+    "serialization": "one complete table declaration per line followed by FK lines"
+  },
+  "leakage_boundary": {
+    "retrieval_fusion_and_reranking_inputs": [
+      "public question",
+      "database catalog without row contents"
+    ],
+    "generation_inputs": [
+      "public question",
+      "reranked schema pack"
+    ],
+    "evaluator_only": [
+      "public reference SQL",
+      "reference result",
+      "task evidence",
+      "schema-evidence labels"
+    ]
+  },
+  "reproducibility_limitations": [
+    "CPU and math-library differences can produce small dense or cross-encoder score differences",
+    "stable ordering resolves exact ties but cannot eliminate near-tie reversals caused by numerical differences",
+    "hosted SQL generation remains nondeterministic and uses committed response recordings for replay",
+    "the reranker was trained for English passage ranking rather than schema retrieval"
+  ],
+  "pre_generation_pack_audit": {
+    "inputs": "public questions and database catalogs only",
+    "tasks": 20,
+    "databases": 10,
+    "configured_candidate_depth": 48,
+    "candidate_count_distribution": {
+      "15": 3,
+      "41": 2,
+      "48": 15
+    },
+    "reranked_candidates": 847,
+    "selected_hits": 240,
+    "schema_chars_total": 12985,
+    "database_embedding_caches": 10
+  },
+  "implementation": "src/schema_safe_bench/retrieval/reranking.py",
+  "method_config": "configs/methods/b5-hybrid-reranking.yaml",
+  "run_config": "configs/runs/b5-openai-luna-smoke.yaml",
+  "manifest": {
+    "path": "data/processed/manifests/bird-minidev-select-smoke.json",
+    "sha256": "2ff3561dd1fc1170bee64209716a1bc1a9e2976a7b7bf9d3e7a1592a0775d375",
+    "tasks": 20,
+    "databases": 10
+  }
+}

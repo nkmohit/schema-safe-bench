@@ -23,6 +23,10 @@ def test_cache_model_command_reports_pinned_model(monkeypatch) -> None:
         "schema_safe_bench.cli.cache_sentence_transformer",
         lambda _: type("Embedder", (), {"library_version": "fixture"})(),
     )
+    monkeypatch.setattr(
+        "schema_safe_bench.cli.cache_cross_encoder",
+        lambda _: type("Reranker", (), {"library_version": "fixture"})(),
+    )
     result = CliRunner().invoke(
         app,
         ["retrieval", "cache-model", "--config", "configs/runs/b3-openai-luna-smoke.yaml"],
@@ -37,3 +41,12 @@ def test_cache_model_command_reports_pinned_model(monkeypatch) -> None:
     )
     assert hybrid.exit_code == 0
     assert "BAAI/bge-small-en-v1.5@5c38ec7c" in hybrid.stdout
+
+    reranked = CliRunner().invoke(
+        app,
+        ["retrieval", "cache-model", "--config", "configs/runs/b5-openai-luna-smoke.yaml"],
+    )
+    assert reranked.exit_code == 0
+    assert "BAAI/bge-small-en-v1.5@5c38ec7c" in reranked.stdout
+    assert "cross-encoder/ms-marco-MiniLM-L6-v2@c5ee24cb" in reranked.stdout
+    assert "raw logits" in reranked.stdout

@@ -319,6 +319,18 @@ class _FakeDenseEmbedder:
         ]
 
 
+class _FakeReranker:
+    library_version = "fixture"
+    dependency_versions: ClassVar[dict[str, str]] = {"sentence-transformers": "fixture"}
+
+    @staticmethod
+    def score(question: str, texts: list[str]) -> list[float]:
+        return [
+            float("customer" in text.casefold()) + float("order" in text.casefold()) + index / 1000
+            for index, text in enumerate(texts)
+        ]
+
+
 def _b3_hosted(base: SmokeRunConfig, tmp_path: Path) -> HostedRunConfig:
     return HostedRunConfig(
         run_id="hosted-b3-fixture",
@@ -369,6 +381,38 @@ def _b4_hosted(base: SmokeRunConfig, tmp_path: Path) -> HostedRunConfig:
             "rank_constant": 60,
             "embedding": b3.schema_context.embedding.model_dump(mode="json"),
         },
+    )
+
+
+def _b5_hosted(base: SmokeRunConfig, tmp_path: Path) -> HostedRunConfig:
+    b4 = _b4_hosted(base, tmp_path)
+    assert b4.schema_context
+    context = b4.schema_context.model_dump(mode="json", exclude_none=True)
+    context.update(
+        {
+            "strategy": "hybrid_rerank",
+            "policy_id": "bm25-bge-rrf-minilm-rerank-schema-documents-v1",
+            "reranker_candidate_depth": 48,
+            "reranker": {
+                "model_id": "fixture/reranker",
+                "revision": "b" * 40,
+                "weights_sha256": "4" * 64,
+                "tokenizer_sha256": "5" * 64,
+                "tokenizer_config_sha256": "6" * 64,
+                "special_tokens_sha256": "7" * 64,
+                "config_sha256": "8" * 64,
+            },
+        }
+    )
+    return HostedRunConfig(
+        run_id="hosted-b5-fixture",
+        method_id="B5",
+        tasks_path=base.tasks_path,
+        databases_root=base.databases_root,
+        manifest_path=base.manifest_path,
+        recording_path=tmp_path / "b5-recording.json",
+        output_path=tmp_path / "b5" / "trace.jsonl",
+        schema_context=context,
     )
 
 
@@ -545,6 +589,113 @@ def test_hosted_b4_replay_does_not_use_evaluator_inputs_for_fusion(
     assert summary.tasks == 2
     assert all(trace.generation and trace.generation.replayed for trace in traces)
     assert all(trace.schema_pack == original_packs[trace.task_id] for trace in traces)
+
+
+def test_b5_context_records_all_reranking_candidates_and_frozen_metadata(
+    sample_database: Path, tmp_path: Path
+) -> None:
+    base = _run_inputs(sample_database, tmp_path)
+    config = _b5_hosted(base, tmp_path)
+    catalog = extract_catalog(base.databases_root / "shop" / "shop.sqlite", db_id="shop")
+
+    pack = _hosted_schema_pack(
+        config,
+        catalog=catalog,
+        question="List customer names",
+        dense_embedder=_FakeDenseEmbedder(),
+        dense_retrievers={},
+        reranker=_FakeReranker(),
+        configuration_sha256="a" * 64,
+        software_revision="c" * 40,
+    )
+
+    assert pack.retrieval_metadata
+    assert pack.retrieval_metadata.strategy == "hybrid_rerank"
+    assert pack.retrieval_metadata.reranker_candidate_depth == 48
+    assert pack.retrieval_metadata.reranker_model_id == "fixture/reranker"
+    assert pack.retrieval_metadata.reranker_model_revision == "b" * 40
+    assert pack.retrieval_metadata.reranker_score_interpretation == "raw_logit"
+    assert pack.retrieval_metadata.reranker_configuration_sha256 == "a" * 64
+    assert pack.retrieval_metadata.reranker_software_revision == "c" * 40
+    assert len(pack.reranking_candidates) == len(build_schema_documents(catalog))
+    assert len(pack.retrieval_hits) == min(12, len(pack.reranking_candidates))
+    assert sum(candidate.selected for candidate in pack.reranking_candidates) == len(
+        pack.retrieval_hits
+    )
+    assert [candidate.post_rerank_rank for candidate in pack.reranking_candidates] == list(
+        range(1, len(pack.reranking_candidates) + 1)
+    )
+    assert all(
+        set(candidate.component_scores) == {"bm25", "dense"}
+        for candidate in pack.reranking_candidates
+    )
+
+
+def test_hosted_b5_replay_does_not_use_reference_sql_evidence_or_labels(
+    sample_database: Path, tmp_path: Path, monkeypatch
+) -> None:
+    base = _run_inputs(sample_database, tmp_path)
+    hosted = _b5_hosted(base, tmp_path)
+    monkeypatch.setattr(
+        "schema_safe_bench.runner.SentenceTransformerEmbedder", lambda _: _FakeDenseEmbedder()
+    )
+    monkeypatch.setattr("schema_safe_bench.runner.CrossEncoderReranker", lambda _: _FakeReranker())
+    catalog = extract_catalog(base.databases_root / "shop" / "shop.sqlite", db_id="shop")
+    recording = load_recording(hosted.recording_path, model_name=hosted.model.model_name)
+    original_packs = {}
+    for record in json.loads(base.tasks_path.read_text()):
+        task_id = str(record["question_id"])
+        pack = _hosted_schema_pack(
+            hosted,
+            catalog=catalog,
+            question=record["question"],
+            dense_embedder=_FakeDenseEmbedder(),
+            dense_retrievers={},
+            reranker=_FakeReranker(),
+            configuration_sha256="a" * 64,
+            software_revision="c" * 40,
+        )
+        original_packs[task_id] = pack
+        request = build_generation_request(
+            question=record["question"],
+            schema_pack=pack,
+            model_name=hosted.model.model_name,
+            temperature=hosted.model.temperature,
+            max_output_tokens=hosted.model.max_output_tokens,
+            reasoning_effort=hosted.model.reasoning_effort,
+        )
+        save_record(
+            recording,
+            hosted.recording_path,
+            task_id=task_id,
+            digest=request_sha256(task_id, request),
+            response=GenerationResponse(
+                raw_output=record["SQL"],
+                model_name="gpt-5.6-luna",
+                requested_model_name="gpt-5.6-luna",
+                provider="openai",
+                endpoint="responses",
+                status="completed",
+            ),
+        )
+    tasks = json.loads(base.tasks_path.read_text())
+    for task in tasks:
+        task["SQL"] = "SELECT count(*) FROM orders"
+        task["evidence"] = "changed evaluator-only evidence and label"
+    base.tasks_path.write_text(json.dumps(tasks), encoding="utf-8")
+
+    traces, summary = run_hosted_smoke(hosted, replay_only=True)
+
+    assert summary.tasks == 2
+    assert all(trace.generation and trace.generation.replayed for trace in traces)
+    assert all(
+        trace.schema_pack
+        and trace.schema_pack.serialized == original_packs[trace.task_id].serialized
+        and trace.schema_pack.retrieval_hits == original_packs[trace.task_id].retrieval_hits
+        and trace.schema_pack.reranking_candidates
+        == original_packs[trace.task_id].reranking_candidates
+        for trace in traces
+    )
 
 
 def test_b2_context_depends_only_on_question_and_catalog(
