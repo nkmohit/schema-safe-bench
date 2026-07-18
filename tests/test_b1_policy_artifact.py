@@ -16,6 +16,7 @@ def test_b1_policy_is_locked_to_config_and_manifest() -> None:
         )
     )
     run = load_hosted_run_config(ROOT / "configs" / "runs" / "b1-openai-luna-smoke.yaml")
+    baseline = load_hosted_run_config(ROOT / "configs" / "runs" / "b0-openai-luna-smoke.yaml")
     provenance = json.loads(
         (ROOT / "data" / "provenance" / "b1-schema-truncation.json").read_text(encoding="utf-8")
     )
@@ -42,3 +43,9 @@ def test_b1_policy_is_locked_to_config_and_manifest() -> None:
     assert run.model.temperature == 0.0
     assert run.model.store is False
     assert run.budget.project_limit_usd < 100
+    assert run.tasks_path == baseline.tasks_path
+    assert run.databases_root == baseline.databases_root
+    assert run.manifest_path == baseline.manifest_path
+    assert run.model == baseline.model
+    assert run.budget == baseline.budget
+    assert run.execution == baseline.execution
