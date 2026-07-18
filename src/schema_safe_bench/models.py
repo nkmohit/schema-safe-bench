@@ -388,6 +388,24 @@ class RepairAudit(StrictModel):
     repair_generation: GenerationResponse | None = None
 
 
+class AbstentionCause(StrictModel):
+    trigger: Literal["validation", "execution"]
+    code: str
+    identifiers: list[str] = Field(default_factory=list)
+    normalized_error: str
+
+
+class AbstentionAudit(StrictModel):
+    policy_id: Literal["validator-controlled-execution-abstention-v1"]
+    first_pass_method_id: Literal["B4"] = "B4"
+    first_pass_request_sha256: str
+    first_pass_candidate_sql: str
+    first_pass_generation: GenerationResponse
+    decision: Literal["query", "model_abstention", "enforced_abstention"]
+    enforced: bool
+    cause: AbstentionCause | None = None
+
+
 class Prediction(StrictModel):
     task_id: str
     sql: str
@@ -413,6 +431,7 @@ class AuditTrace(StrictModel):
     generation: GenerationResponse | None = None
     repair_count: int = Field(default=0, ge=0, le=1)
     repair: RepairAudit | None = Field(default=None, exclude_if=lambda value: value is None)
+    abstention: AbstentionAudit | None = Field(default=None, exclude_if=lambda value: value is None)
     validation: ValidationResult
     execution: ExecutionResult
     reference_execution: ExecutionResult
@@ -434,6 +453,9 @@ class RunSummary(StrictModel):
     repair_accounting: "RepairAccounting | None" = Field(
         default=None, exclude_if=lambda value: value is None
     )
+    abstention_accounting: "AbstentionAccounting | None" = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class UsageAccounting(StrictModel):
@@ -448,6 +470,18 @@ class RepairAccounting(StrictModel):
     attempted: int = Field(ge=0)
     first_pass: UsageAccounting
     incremental_repair: UsageAccounting
+    total: UsageAccounting
+
+
+class AbstentionAccounting(StrictModel):
+    model_abstentions: int = Field(ge=0)
+    enforced_abstentions: int = Field(ge=0)
+    total_abstentions: int = Field(ge=0)
+    coverage: float = Field(ge=0, le=1)
+    eligible_unsafe_terminals: int = Field(ge=0)
+    unsafe_terminal_avoidance_rate: float = Field(ge=0, le=1)
+    first_pass: UsageAccounting
+    incremental: UsageAccounting
     total: UsageAccounting
 
 
@@ -754,16 +788,29 @@ class RepairPolicyConfig(StrictModel):
     repair_recording_path: Path
 
 
+class AbstentionPolicyConfig(StrictModel):
+    validation_enabled: Literal[True] = Field(default=True, alias="validate")
+    allow_model_abstain: Literal[True] = True
+    policy_id: Literal["validator-controlled-execution-abstention-v1"] = (
+        "validator-controlled-execution-abstention-v1"
+    )
+    error_policy: Literal["normalized-validator-executor-v1"] = "normalized-validator-executor-v1"
+    first_pass_method_id: Literal["B4"] = "B4"
+    first_pass_config_path: Path
+    first_pass_recording_path: Path
+    first_pass_trace_path: Path
+
+
 class HostedRunConfig(StrictModel):
     run_id: str
-    method_id: Literal["B0", "B1", "B2", "B3", "B4", "B5", "B6"]
+    method_id: Literal["B0", "B1", "B2", "B3", "B4", "B5", "B6", "B7"]
     tasks_path: Path
     databases_root: Path
     manifest_path: Path
     recording_path: Path
     output_path: Path
     schema_context: HostedSchemaContextConfig | None = None
-    reliability: RepairPolicyConfig | None = Field(
+    reliability: RepairPolicyConfig | AbstentionPolicyConfig | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
     environment_path: Path = Path(".env")
@@ -800,10 +847,15 @@ class HostedRunConfig(StrictModel):
         if self.method_id == "B6":
             if not self.schema_context or self.schema_context.strategy != "hybrid":
                 raise ValueError("B6 requires hybrid schema context")
-            if self.reliability is None:
+            if not isinstance(self.reliability, RepairPolicyConfig):
                 raise ValueError("B6 requires a repair reliability policy")
+        elif self.method_id == "B7":
+            if not self.schema_context or self.schema_context.strategy != "hybrid":
+                raise ValueError("B7 requires hybrid schema context")
+            if not isinstance(self.reliability, AbstentionPolicyConfig):
+                raise ValueError("B7 requires an abstention reliability policy")
         elif self.reliability is not None:
-            raise ValueError("only B6 can define a repair reliability policy")
+            raise ValueError("only B6 or B7 can define a reliability policy")
         return self
 
 

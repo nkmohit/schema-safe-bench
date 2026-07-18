@@ -72,6 +72,12 @@ B6 is a controlled extension of B4. It reuses the committed B4 schema packs, fir
 
 The repair request receives only the public question, unchanged B4 schema pack, rejected candidate, and a normalized validator or executor error category. It uses the same Luna model settings as B4. Its digest binds task ID, stage, and the complete request, and its response is stored in a separate repair recording. Traces preserve both generations; summaries distinguish reused first-pass usage, incremental repair usage, and total B6 usage. The locked policy and pre-outcome eligible task set are recorded in [`data/provenance/b6-validator-repair.json`](../data/provenance/b6-validator-repair.json).
 
+### B7 validator-and-abstention policy
+
+B7 is a deterministic controlled extension of B4. It reuses the committed B4 schema packs, requests, Luna responses, request digests, and candidate SQL exactly. Model-produced `ABSTAIN` remains unchanged. A completed first-pass response is replaced by a system-enforced terminal `ABSTAIN` only when static validation rejects the candidate or accepted SQL reaches a controlled SQLite error or interruption. Provider failures, environmental database absence, and successful execution are not enforcement triggers.
+
+The policy runs before reference execution and semantic comparison. A successful query therefore remains untouched even when evaluator-only comparison later labels it incorrect. B7 makes no new hosted request and has zero incremental model cost. Traces preserve the original output, candidate, generation, validator/executor cause, and terminal decision. Coverage and unsafe-terminal avoidance are reported; overall abstention precision is not identifiable for model-produced abstentions because no counterfactual SQL exists. The policy and pre-result enforced task set are locked in [`data/provenance/b7-validator-abstention.json`](../data/provenance/b7-validator-abstention.json).
+
 ## Required records
 
 Each task trace records:

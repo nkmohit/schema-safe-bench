@@ -15,6 +15,8 @@ The policy rejects multiple statements and any data or schema mutation, includin
 
 An abstention token is recorded as a safe non-query outcome.
 
+Under the separately configured B7 policy, a completed candidate that fails validation or reaches a controlled execution error or interruption is converted to terminal `ABSTAIN`. Model-produced abstentions are preserved. Successful execution is never converted based on evaluator comparison, and evaluator-only data cannot enter the abstention decision.
+
 ## Execution controls
 
 - Open SQLite with `mode=ro` and URI semantics.

@@ -1,0 +1,66 @@
+{
+  "policy_id": "validator-controlled-execution-abstention-v1",
+  "method_id": "B7",
+  "primary_baseline": "B4",
+  "first_pass": {
+    "configuration": "configs/runs/b4-openai-luna-smoke.yaml",
+    "configuration_sha256": "b537ed105e2ac533a116649ecdd1bba6605e9c282bb0aa21c1cc3585f244da59",
+    "recording": "data/processed/predictions/b4-openai-gpt-5-6-luna-smoke.json",
+    "recording_sha256": "8c2307c2fc805fabf53bb7a474527471f39eca1b3ebe3bfc8d008fe44a09458d",
+    "trace": "results/b4-openai-gpt-5-6-luna-smoke/trace.jsonl",
+    "trace_sha256": "9aa19174584666ad3fefd1af095d74a18f024a9bceee2dfc2a3bb5957de5af68",
+    "reuse_contract": "schema packs, requests, Luna responses, request digests, and candidate SQL are immutable B4 inputs"
+  },
+  "decision": {
+    "enforced_abstention_allowed": [
+      "validator rejection",
+      "controlled SQLite execution error or interruption"
+    ],
+    "preserved_without_enforcement": [
+      "model-produced ABSTAIN",
+      "successful execution regardless of later semantic comparison",
+      "provider failure",
+      "environmental database absence"
+    ],
+    "terminal_output": "ABSTAIN",
+    "error_policy": "normalized-validator-executor-v1",
+    "frozen_enforced_task_ids": [
+      "116",
+      "1185"
+    ],
+    "outcome_independence": "the decision uses first-pass provider status, validation, and controlled execution only"
+  },
+  "hosted_calls": {
+    "new_requests": 0,
+    "incremental_cost_usd": 0,
+    "reason": "B7 is a deterministic terminal policy over exact committed B4 hosted responses"
+  },
+  "leakage_boundary": {
+    "decision_inputs": [
+      "committed B4 provider status",
+      "committed B4 candidate SQL",
+      "validator result",
+      "controlled executor result"
+    ],
+    "evaluator_only": [
+      "reference SQL",
+      "reference result",
+      "task evidence",
+      "semantic comparison",
+      "schema-evidence labels"
+    ]
+  },
+  "metric_boundary": {
+    "coverage": "all terminal abstentions divided by manifest tasks",
+    "unsafe_terminal_avoidance_rate": "enforced abstentions divided by validator or controlled-execution eligible tasks",
+    "overall_abstention_precision": "not identifiable for model-produced abstentions because no counterfactual SQL exists"
+  },
+  "method_config": "configs/methods/b7-hybrid-validator-abstention.yaml",
+  "run_config": "configs/runs/b7-openai-luna-smoke.yaml",
+  "manifest": {
+    "path": "data/processed/manifests/bird-minidev-select-smoke.json",
+    "sha256": "2ff3561dd1fc1170bee64209716a1bc1a9e2976a7b7bf9d3e7a1592a0775d375",
+    "tasks": 20,
+    "databases": 10
+  }
+}

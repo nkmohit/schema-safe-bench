@@ -28,6 +28,10 @@ from schema_safe_bench.generation import (
     save_repair_record,
 )
 from schema_safe_bench.models import (
+    AbstentionAccounting,
+    AbstentionAudit,
+    AbstentionCause,
+    AbstentionPolicyConfig,
     AuditTrace,
     BenchmarkTask,
     Catalog,
@@ -40,6 +44,7 @@ from schema_safe_bench.models import (
     RepairAccounting,
     RepairAudit,
     RepairCause,
+    RepairPolicyConfig,
     RetrievalMetadata,
     RunSummary,
     SchemaPack,
@@ -263,6 +268,15 @@ def _repair_cause(validation: ValidationResult, execution: ExecutionResult) -> R
     return None
 
 
+def _abstention_cause(
+    validation: ValidationResult, execution: ExecutionResult
+) -> AbstentionCause | None:
+    cause = _repair_cause(validation, execution)
+    if cause is None:
+        return None
+    return AbstentionCause.model_validate(cause.model_dump())
+
+
 def run_offline_smoke(config: SmokeRunConfig) -> tuple[list[AuditTrace], RunSummary]:
     tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
     manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
@@ -303,6 +317,8 @@ def run_hosted_smoke(
         raise FileExistsError(f"Run output already exists: {config.output_path} or {summary_path}")
     if config.method_id == "B6":
         return _run_b6_repair_smoke(config, replay_only=replay_only)
+    if config.method_id == "B7":
+        return _run_b7_abstention_smoke(config)
     tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
     manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
     recording = load_recording(config.recording_path, model_name=config.model.model_name)
@@ -427,7 +443,7 @@ def _run_b6_repair_smoke(
     config: HostedRunConfig, *, replay_only: bool
 ) -> tuple[list[AuditTrace], RunSummary]:
     policy = config.reliability
-    assert policy is not None and config.schema_context is not None
+    assert isinstance(policy, RepairPolicyConfig) and config.schema_context is not None
     first_config = load_hosted_run_config(policy.first_pass_config_path)
     if first_config.method_id != "B4":
         raise ValueError("B6 first-pass configuration must be B4")
@@ -478,6 +494,16 @@ def _run_b6_repair_smoke(
             raise ValueError(f"B4 provenance mismatch for task {task_id!r}")
         if first.generation is None or first.schema_pack is None:
             raise ValueError(f"B4 trace lacks generation provenance for task {task_id!r}")
+        expected_request = build_generation_request(
+            question=task.question,
+            schema_pack=first.schema_pack,
+            model_name=first_config.model.model_name,
+            temperature=first_config.model.temperature,
+            max_output_tokens=first_config.model.max_output_tokens,
+            reasoning_effort=first_config.model.reasoning_effort,
+        )
+        if request_sha256(task_id, expected_request) != first.request_sha256:
+            raise ValueError(f"B4 request digest drifted for task {task_id!r}")
         if first.generation.model_dump(exclude={"replayed"}) != record.response.model_dump(
             exclude={"replayed"}
         ):
@@ -607,6 +633,155 @@ def _run_b6_repair_smoke(
                 first_pass=_usage(first_generations),
                 incremental_repair=_usage(repair_generations),
                 total=_usage(total_generations),
+            )
+        }
+    )
+    return traces, summary
+
+
+def _run_b7_abstention_smoke(
+    config: HostedRunConfig,
+) -> tuple[list[AuditTrace], RunSummary]:
+    policy = config.reliability
+    assert isinstance(policy, AbstentionPolicyConfig) and config.schema_context is not None
+    first_config = load_hosted_run_config(policy.first_pass_config_path)
+    if first_config.method_id != "B4":
+        raise ValueError("B7 first-pass configuration must be B4")
+    controlled_pairs = (
+        (first_config.tasks_path, config.tasks_path, "tasks"),
+        (first_config.databases_root, config.databases_root, "database root"),
+        (first_config.manifest_path, config.manifest_path, "manifest"),
+        (first_config.recording_path, config.recording_path, "first-pass recording"),
+        (first_config.recording_path, policy.first_pass_recording_path, "recording"),
+        (first_config.schema_context, config.schema_context, "schema context"),
+        (first_config.model, config.model, "model"),
+        (first_config.execution, config.execution, "execution limits"),
+    )
+    for first_value, b7_value, label in controlled_pairs:
+        if first_value != b7_value:
+            raise ValueError(f"B7 {label} must exactly match its B4 first pass")
+
+    tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
+    manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
+    first_traces = [
+        AuditTrace.model_validate_json(line)
+        for line in policy.first_pass_trace_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    first_by_task = {trace.task_id: trace for trace in first_traces}
+    if len(first_by_task) != len(first_traces) or set(first_by_task) != set(manifest.task_ids):
+        raise ValueError("B4 first-pass trace must contain exactly the manifest tasks")
+    first_recording = load_recording(
+        policy.first_pass_recording_path, model_name=config.model.model_name
+    )
+    first_records = {record.task_id: record for record in first_recording.records}
+    if set(first_records) != set(manifest.task_ids):
+        raise ValueError("B4 first-pass recording must contain exactly the manifest tasks")
+
+    configuration_sha256 = _configuration_sha256(config)
+    software_revision = _software_revision()
+    traces: list[AuditTrace] = []
+    enforced = 0
+    model_abstentions = 0
+    for task_id in manifest.task_ids:
+        task = tasks[task_id]
+        first = first_by_task[task_id]
+        record = first_records[task_id]
+        if first.method_id != "B4" or first.request_sha256 != record.request_sha256:
+            raise ValueError(f"B4 provenance mismatch for task {task_id!r}")
+        if first.generation is None or first.schema_pack is None:
+            raise ValueError(f"B4 trace lacks generation provenance for task {task_id!r}")
+        expected_request = build_generation_request(
+            question=task.question,
+            schema_pack=first.schema_pack,
+            model_name=first_config.model.model_name,
+            temperature=first_config.model.temperature,
+            max_output_tokens=first_config.model.max_output_tokens,
+            reasoning_effort=first_config.model.reasoning_effort,
+        )
+        if request_sha256(task_id, expected_request) != first.request_sha256:
+            raise ValueError(f"B4 request digest drifted for task {task_id!r}")
+        if first.generation.model_dump(exclude={"replayed"}) != record.response.model_dump(
+            exclude={"replayed"}
+        ):
+            raise ValueError(f"B4 response mismatch for task {task_id!r}")
+        database = find_database(config.databases_root, task.db_id)
+        catalog = extract_catalog(database, db_id=task.db_id)
+        validation = SqlValidator(catalog).validate(first.candidate_sql)
+        execution = execute_read_only(database, validation, limits=config.execution)
+        if (
+            validation.status != first.validation.status
+            or execution.status != first.execution.status
+            or execution.error_type != first.execution.error_type
+        ):
+            raise ValueError(f"B4 first-pass safety outcome drifted for task {task_id!r}")
+        cause = (
+            _abstention_cause(validation, execution)
+            if first.generation.status == "completed"
+            else None
+        )
+        if validation.status == "abstain":
+            decision = "model_abstention"
+            final_sql = first.candidate_sql
+            model_abstentions += 1
+        elif cause is not None:
+            decision = "enforced_abstention"
+            final_sql = "ABSTAIN"
+            enforced += 1
+        else:
+            decision = "query"
+            final_sql = first.candidate_sql
+
+        trace = _evaluate_prediction(
+            run_id=config.run_id,
+            method_id=config.method_id,
+            configuration_sha256=configuration_sha256,
+            software_revision=software_revision,
+            task=task,
+            prediction=Prediction(
+                task_id=task.task_id,
+                sql=final_sql,
+                raw_output=first.raw_output,
+                request_sha256=first.request_sha256,
+                generation=first.generation,
+                schema_pack=first.schema_pack,
+            ),
+            database=database,
+            catalog=catalog,
+            execution_limits=config.execution,
+        )
+        traces.append(
+            trace.model_copy(
+                update={
+                    "abstention": AbstentionAudit(
+                        policy_id=policy.policy_id,
+                        first_pass_request_sha256=first.request_sha256,
+                        first_pass_candidate_sql=first.candidate_sql,
+                        first_pass_generation=first.generation,
+                        decision=decision,
+                        enforced=cause is not None,
+                        cause=cause,
+                    )
+                }
+            )
+        )
+
+    generations = [trace.generation for trace in traces if trace.generation]
+    total_abstentions = model_abstentions + enforced
+    first_usage = _usage(generations)
+    zero_usage = _usage([])
+    summary = _summarize(config.run_id, config.method_id, traces).model_copy(
+        update={
+            "abstention_accounting": AbstentionAccounting(
+                model_abstentions=model_abstentions,
+                enforced_abstentions=enforced,
+                total_abstentions=total_abstentions,
+                coverage=total_abstentions / len(traces),
+                eligible_unsafe_terminals=enforced,
+                unsafe_terminal_avoidance_rate=1.0 if enforced else 0.0,
+                first_pass=first_usage,
+                incremental=zero_usage,
+                total=first_usage,
             )
         }
     )
