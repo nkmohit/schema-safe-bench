@@ -1,0 +1,367 @@
+{
+  "format_version": "1",
+  "provider": "openai",
+  "requested_model_name": "gpt-5.6-luna",
+  "records": [
+    {
+      "task_id": "1028",
+      "request_sha256": "f0c0b53953833d6698db8dc79abaf59a904d72395c67568b806b804b685fc46c",
+      "response": {
+        "raw_output": "SELECT t.team_long_name, COUNT(*) AS away_wins\nFROM Match m\nJOIN League l ON m.league_id = l.id\nJOIN Country c ON l.country_id = c.id\nJOIN Team t ON m.away_team_api_id = t.team_api_id\nWHERE c.name = 'Scotland'\n  AND l.name = 'Premier League'\n  AND m.season = '2010'\n  AND m.away_team_goal > m.home_team_goal\nGROUP BY t.team_long_name\nORDER BY away_wins DESC\nLIMIT 1;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 1472,
+        "cached_input_tokens": 0,
+        "output_tokens": 118,
+        "request_elapsed_ms": 3521.5337080007885,
+        "estimated_cost_usd": 0.00218,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1042",
+      "request_sha256": "adeccd3d45c40f4d944d7744874513f4a67ba1b87bf8d591bc0b454877158c35",
+      "response": {
+        "raw_output": "SELECT l.name\nFROM League AS l\nJOIN Match AS m ON m.league_id = l.id\nWHERE m.season = '2009/2010'\nGROUP BY l.id, l.name\nHAVING AVG(m.home_team_goal) > AVG(m.away_team_goal);",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 1484,
+        "cached_input_tokens": 0,
+        "output_tokens": 62,
+        "request_elapsed_ms": 1127.5854160194285,
+        "estimated_cost_usd": 0.001856,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1139",
+      "request_sha256": "299e77c5ba235b47649c42cd15ef306775cbdcb457a13e5d8f98c0ff6bc420cc",
+      "response": {
+        "raw_output": "SELECT home_team_goal, away_team_goal\nFROM Match\nJOIN League ON Match.league_id = League.id\nWHERE League.name = 'Belgian Jupiler League'\n  AND Match.date = '2008-09-24';",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 1487,
+        "cached_input_tokens": 0,
+        "output_tokens": 52,
+        "request_elapsed_ms": 1447.092332993634,
+        "estimated_cost_usd": 0.001799,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1155",
+      "request_sha256": "699c4806054861177a882eeafb0404cd51e0a635552b3626da99ddde99296c83",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 357,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 957.4297080107499,
+        "estimated_cost_usd": 0.000399,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "116",
+      "request_sha256": "61664eaa44e7f8116af19aba4549749310237107013fedff574b640388dea61e",
+      "response": {
+        "raw_output": "WITH first_loan AS (\n  SELECT account_id\n  FROM loan\n  WHERE date = '1993-07-05'\n  ORDER BY loan_id\n  LIMIT 1\n),\nbalances AS (\n  SELECT\n    MAX(CASE WHEN date = '1993-03-22' THEN balance END) AS start_balance,\n    MAX(CASE WHEN date = '1998-12-27' THEN balance END) AS end_balance\n  FROM trans\n  WHERE account_id = (SELECT account_id FROM first_loan)\n)\nSELECT (end_balance - start_balance) * 100.0 / start_balance AS increase_rate\nFROM balances;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 414,
+        "cached_input_tokens": 0,
+        "output_tokens": 137,
+        "request_elapsed_ms": 1368.6026250070427,
+        "estimated_cost_usd": 0.001236,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1185",
+      "request_sha256": "1bd5a9f9dabc7aef0084c562e69b38bada949b2f3094a37dada251b7b63611ef",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 374,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 740.2185000246391,
+        "estimated_cost_usd": 0.000416,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1351",
+      "request_sha256": "2ffc4af2b6530174c828cf2695300fada43f8981669f130d2080a39e1cdd7815",
+      "response": {
+        "raw_output": "SELECT major.major_name\nFROM member\nJOIN major ON member.link_to_major = major.major_id\nWHERE member.first_name = 'Brent' AND member.last_name = 'Thomason';",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 359,
+        "cached_input_tokens": 0,
+        "output_tokens": 43,
+        "request_elapsed_ms": 1141.9619579974096,
+        "estimated_cost_usd": 0.000617,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1389",
+      "request_sha256": "a2c62d3be2fffb4565605baffa71c813e3fddcd9bbe5fef63fd9977fa665ec45",
+      "response": {
+        "raw_output": "SELECT e.event_name, SUM(x.cost) AS total_cost\nFROM event AS e\nJOIN budget AS b ON b.link_to_event = e.event_id\nJOIN expense AS x ON x.link_to_budget = b.budget_id\nGROUP BY e.event_id, e.event_name\nORDER BY total_cost ASC\nLIMIT 1;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 358,
+        "cached_input_tokens": 0,
+        "output_tokens": 71,
+        "request_elapsed_ms": 1359.3669169931673,
+        "estimated_cost_usd": 0.000784,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1464",
+      "request_sha256": "98a04cd80ec9b87804b427133316d3a1c1a4f61aa4e096ffdc1962dde3b13484",
+      "response": {
+        "raw_output": "SELECT member.first_name || ' ' || member.last_name AS full_name, income.amount\nFROM income\nJOIN member ON income.link_to_member = member.member_id\nWHERE income.date_received = '9/9/2019';",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 377,
+        "cached_input_tokens": 0,
+        "output_tokens": 50,
+        "request_elapsed_ms": 1219.553167000413,
+        "estimated_cost_usd": 0.000677,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "218",
+      "request_sha256": "f692a8e22f673800671fd1d2ae9259e0c2c9bce16d8f8fa2374e44c383857e79",
+      "response": {
+        "raw_output": "WITH carcinogenic AS (\n  SELECT DISTINCT molecule_id\n  FROM molecule\n  WHERE LOWER(label) LIKE '%carcinogenic%'\n),\ncounts AS (\n  SELECT\n    COUNT(*) AS total,\n    SUM(CASE WHEN NOT EXISTS (\n      SELECT 1\n      FROM atom\n      WHERE atom.molecule_id = carcinogenic.molecule_id\n        AND LOWER(atom.element) = 'f'\n    ) THEN 1 ELSE 0 END) AS without_fluorine\n  FROM carcinogenic\n)\nSELECT 100.0 * without_fluorine / NULLIF(total, 0) AS percentage\nFROM counts",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 195,
+        "cached_input_tokens": 0,
+        "output_tokens": 130,
+        "request_elapsed_ms": 1297.7301249920856,
+        "estimated_cost_usd": 0.000975,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "226",
+      "request_sha256": "c92e977ce9709e0672b7609f2069c57456b9151ffc8b1ea15e57392f68772185",
+      "response": {
+        "raw_output": "SELECT printf('%.5f%%', 100.0 * SUM(CASE WHEN b.bond_type = 'double' THEN 1 ELSE 0 END) / COUNT(*)) FROM bond b JOIN molecule m ON m.molecule_id = b.molecule_id WHERE m.label = 'TR008';",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 207,
+        "cached_input_tokens": 0,
+        "output_tokens": 65,
+        "request_elapsed_ms": 1732.3130840086378,
+        "estimated_cost_usd": 0.000597,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "24",
+      "request_sha256": "a656a5d71a11d4f175ba549c1d6510e41d60b6f0f1f6b53aca969085946ee8a1",
+      "response": {
+        "raw_output": "SELECT DISTINCT f.\"School Name\"\nFROM frpm AS f\nJOIN satscores AS s ON f.CDSCode = s.cds\nWHERE f.\"Percent (%) Eligible Free (K-12)\" > 0.1\n  AND s.NumGE1500 > 0;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 617,
+        "cached_input_tokens": 0,
+        "output_tokens": 61,
+        "request_elapsed_ms": 1138.0436659965198,
+        "estimated_cost_usd": 0.000983,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "244",
+      "request_sha256": "b6d56d4ffac19e6bcb71805844a93ac514f40bfead4eedb9bcdb46610c489e44",
+      "response": {
+        "raw_output": "SELECT CASE WHEN m.label = 'carcinogenic' THEN 'yes' ELSE 'no' END AS is_carcinogenic\nFROM molecule AS m\nJOIN (\n  SELECT molecule_id\n  FROM bond\n  WHERE bond_type = 'double'\n  GROUP BY molecule_id\n  ORDER BY COUNT(*) DESC\n  LIMIT 1\n) AS d ON d.molecule_id = m.molecule_id;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 193,
+        "cached_input_tokens": 0,
+        "output_tokens": 87,
+        "request_elapsed_ms": 1361.888208979508,
+        "estimated_cost_usd": 0.000715,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "414",
+      "request_sha256": "7ffaf02a06951151978ada17c4308d8911ac64138d88755e08de5b8c8cc2fdf4",
+      "response": {
+        "raw_output": "SELECT language FROM set_translations WHERE setCode IN (SELECT code FROM sets WHERE baseSetSize = 180 OR totalSetSize = 180) LIMIT 1;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 638,
+        "cached_input_tokens": 0,
+        "output_tokens": 38,
+        "request_elapsed_ms": 973.6661250062753,
+        "estimated_cost_usd": 0.000866,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "459",
+      "request_sha256": "852636c71453a25be8a0549186538d120fab0cda571cacb49d3ddaaa9d37da88",
+      "response": {
+        "raw_output": "SELECT name, convertedManaCost\nFROM cards\nWHERE name IN ('Serra Angel', 'Shrine Keeper')\nORDER BY convertedManaCost DESC;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 636,
+        "cached_input_tokens": 0,
+        "output_tokens": 34,
+        "request_elapsed_ms": 990.477125014877,
+        "estimated_cost_usd": 0.00084,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "47",
+      "request_sha256": "44d2e4ab90c801aad47b161afde5606816d77ad4eae41de806f3848e1ebcceef",
+      "response": {
+        "raw_output": "SELECT COUNT(*) / 12.0 AS monthly_average_schools_opened\nFROM schools\nWHERE County = 'Alameda'\n  AND DOCType = 'Elementary School District'\n  AND OpenDate >= '1980-01-01'\n  AND OpenDate < '1981-01-01';",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 602,
+        "cached_input_tokens": 0,
+        "output_tokens": 67,
+        "request_elapsed_ms": 1077.698416018393,
+        "estimated_cost_usd": 0.001004,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "637",
+      "request_sha256": "a35b7026a2eb4809b52032585b3c9b84e5bca1746bd6834eae7bf5c7bbd01a7c",
+      "response": {
+        "raw_output": "SELECT DISTINCT t.TagName\nFROM posts AS p\nJOIN users AS u ON u.Id = p.OwnerUserId\nJOIN tags AS t ON instr(p.Tags, '<' || t.TagName || '>') > 0\nWHERE u.DisplayName = 'Mark Meckes'\n  AND NOT EXISTS (\n    SELECT 1\n    FROM comments AS c\n    WHERE c.PostId = p.Id\n  );",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 522,
+        "cached_input_tokens": 0,
+        "output_tokens": 88,
+        "request_elapsed_ms": 1250.8458330121357,
+        "estimated_cost_usd": 0.00105,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "740",
+      "request_sha256": "efce56bca85cc07131bc2afe51a3739be31bb862d39bb0f7751cdd6e9a11e8b1",
+      "response": {
+        "raw_output": "SELECT COUNT(DISTINCT s.id)\nFROM superhero AS s\nJOIN gender AS g ON g.id = s.gender_id\nJOIN hero_attribute AS ha ON ha.hero_id = s.id\nJOIN attribute AS a ON a.id = ha.attribute_id\nWHERE g.gender = 'Female'\n  AND a.attribute_name = 'Strength'\n  AND ha.attribute_value = 100;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 321,
+        "cached_input_tokens": 0,
+        "output_tokens": 79,
+        "request_elapsed_ms": 1182.643084001029,
+        "estimated_cost_usd": 0.000795,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "800",
+      "request_sha256": "315224185c3fbde49c77e315d52ec55d44175132c1a0a839168c66fe73c8a0cc",
+      "response": {
+        "raw_output": "SELECT 100.0 * SUM(CASE WHEN LOWER(c.colour) = 'blue' THEN 1 ELSE 0 END) / COUNT(*) AS percentage_blue_eyes\nFROM superhero s\nJOIN colour c ON c.id = s.eye_colour_id;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 318,
+        "cached_input_tokens": 0,
+        "output_tokens": 56,
+        "request_elapsed_ms": 1140.1990829908755,
+        "estimated_cost_usd": 0.000654,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "898",
+      "request_sha256": "6ddf6dfd9dbc2eea763401cb09e00c5b90477cd9727deef2ac59a31caf92ed95",
+      "response": {
+        "raw_output": "SELECT CAST((julianday('now') - julianday(dob)) / 365.2425 AS INTEGER) AS age, forename || ' ' || surname AS name\nFROM drivers\nWHERE nationality = 'Japanese'\nORDER BY dob DESC\nLIMIT 1;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 657,
+        "cached_input_tokens": 0,
+        "output_tokens": 59,
+        "request_elapsed_ms": 1235.970375011675,
+        "estimated_cost_usd": 0.001011,
+        "replayed": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "provider": "OpenAI",
+  "requested_model": "gpt-5.6-luna",
+  "resolved_model": "gpt-5.6-luna",
+  "endpoint": "v1/responses",
+  "model_source": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+  "api_source": "https://developers.openai.com/api/reference/resources/responses/methods/create",
+  "pricing": {
+    "currency": "USD",
+    "unit_tokens": 1000000,
+    "input": 1.0,
+    "cached_input": 0.1,
+    "output": 6.0,
+    "long_context_threshold_tokens": 272000,
+    "long_context_input_multiplier": 2.0,
+    "long_context_output_multiplier": 1.5
+  },
+  "generation": {
+    "temperature": 0.0,
+    "reasoning_effort": "none",
+    "max_output_tokens": 1000,
+    "store": false,
+    "tools": []
+  }
+}

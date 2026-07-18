@@ -100,6 +100,8 @@ No benchmark performance claim is published until the corresponding configuratio
 
 Evaluator compatibility is verified independently of model performance: 7/7 semantic edge cases and 20/20 committed smoke tasks match the pinned official BIRD evaluator behavior.
 
+The first hosted B0 smoke artifact uses `gpt-5.6-luna` on the same 20 tasks. It records 6 correct results, 10 semantic mismatches, 2 safe abstentions, and 2 bounded-execution interruptions at an estimated token cost of `$0.019454`. This is a pipeline smoke result, not a complete benchmark score. See [results/b0-openai-gpt-5-6-luna-smoke](results/b0-openai-gpt-5-6-luna-smoke/README.md).
+
 ## Responsible use and limitations
 
 The validator and SQLite sandbox provide defense in depth for controlled experiments. They are not a substitute for database permissions, workload isolation, query review, or production security controls. Generated SQL can execute successfully and still be semantically wrong.
