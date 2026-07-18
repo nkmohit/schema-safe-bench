@@ -1,6 +1,7 @@
 """Prompts that expose schema evidence but never evaluation references."""
 
 import re
+from typing import Literal
 
 from schema_safe_bench.models import GenerationRequest, PromptMessage, SchemaPack
 
@@ -20,6 +21,7 @@ def build_generation_request(
     model_name: str,
     temperature: float = 0.0,
     max_output_tokens: int = 1000,
+    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] = "none",
 ) -> GenerationRequest:
     user = f"Question:\n{question}\n\nAvailable schema:\n{schema_pack.serialized}"
     return GenerationRequest(
@@ -31,6 +33,7 @@ def build_generation_request(
         temperature=temperature,
         max_output_tokens=max_output_tokens,
         prompt_version=PROMPT_VERSION,
+        reasoning_effort=reasoning_effort,
     )
 
 

@@ -41,6 +41,8 @@ uv run schema-safe-bench dataset verify \
 
 Every run configuration declares a task manifest, method, seed, execution limits, prompt version, and generator settings. Outputs are JSONL traces plus a summary JSON. Local runs are ignored unless deliberately curated as small examples.
 
+For the first hosted B0 path, follow [hosted-generation.md](hosted-generation.md). The committed OpenAI/Luna configuration enforces local spend limits, records API usage without credentials, and supports request-digest-checked offline replay.
+
 ## Evaluator compatibility
 
 Clone and check out the revision recorded in [`data/provenance/bird-evaluator.json`](../data/provenance/bird-evaluator.json), then run:

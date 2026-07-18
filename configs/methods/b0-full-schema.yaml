@@ -1,0 +1,11 @@
+method_id: B0
+schema_context:
+  strategy: full
+reliability:
+  validate: true
+  max_repairs: 0
+  allow_abstain: true
+execution:
+  row_limit: 100000
+  vm_step_budget: 1000000
+  progress_interval: 1000

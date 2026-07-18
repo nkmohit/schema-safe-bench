@@ -57,6 +57,8 @@ uv run schema-safe-bench run smoke --help
 
 See [data/README.md](data/README.md) for the expected BIRD layout and [docs/reproducibility.md](docs/reproducibility.md) for the complete run sequence.
 
+The first hosted-generation path uses a locally configured OpenAI credential and `gpt-5.6-luna`, with a project spend guard and deterministic response replay. See [docs/hosted-generation.md](docs/hosted-generation.md). No hosted API calls run in CI.
+
 Install the optional dense-retrieval stack only for experiments that use a documented local embedding model:
 
 ```bash

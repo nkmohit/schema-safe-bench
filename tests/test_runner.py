@@ -3,9 +3,26 @@ from pathlib import Path
 
 import yaml
 
-from schema_safe_bench.models import SmokeRunConfig
+from schema_safe_bench.catalog import extract_catalog
+from schema_safe_bench.generation import (
+    load_recording,
+    request_sha256,
+    save_record,
+)
+from schema_safe_bench.models import (
+    GenerationResponse,
+    HostedRunConfig,
+    SmokeRunConfig,
+)
+from schema_safe_bench.prompting import build_generation_request
 from schema_safe_bench.reporting import write_run_artifacts
-from schema_safe_bench.runner import load_run_config, run_offline_smoke
+from schema_safe_bench.retrieval import full_schema_pack
+from schema_safe_bench.runner import (
+    load_hosted_run_config,
+    load_run_config,
+    run_hosted_smoke,
+    run_offline_smoke,
+)
 
 
 def _run_inputs(sample_database: Path, tmp_path: Path) -> SmokeRunConfig:
@@ -106,3 +123,82 @@ def test_load_run_config(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     assert load_run_config(config_path).method_id == "B2"
+
+
+def test_hosted_smoke_replays_without_api_access(sample_database: Path, tmp_path: Path) -> None:
+    config = _run_inputs(sample_database, tmp_path)
+    hosted = HostedRunConfig(
+        run_id="hosted-fixture",
+        method_id="B0",
+        tasks_path=config.tasks_path,
+        databases_root=config.databases_root,
+        manifest_path=config.manifest_path,
+        recording_path=tmp_path / "recording.json",
+        output_path=tmp_path / "hosted" / "trace.jsonl",
+    )
+    tasks_payload = json.loads(config.tasks_path.read_text())
+    recording = load_recording(hosted.recording_path, model_name=hosted.model.model_name)
+    for record in tasks_payload:
+        task_id = str(record["question_id"])
+        database = hosted.databases_root / "shop" / "shop.sqlite"
+        schema_pack = full_schema_pack(extract_catalog(database, db_id="shop"))
+        request = build_generation_request(
+            question=record["question"],
+            schema_pack=schema_pack,
+            model_name=hosted.model.model_name,
+            temperature=hosted.model.temperature,
+            max_output_tokens=hosted.model.max_output_tokens,
+            reasoning_effort=hosted.model.reasoning_effort,
+        )
+        digest = request_sha256(task_id, request)
+        output = record["SQL"]
+        save_record(
+            recording,
+            hosted.recording_path,
+            task_id=task_id,
+            digest=digest,
+            response=GenerationResponse(
+                raw_output=output,
+                model_name="gpt-5.6-luna",
+                requested_model_name="gpt-5.6-luna",
+                provider="openai",
+                endpoint="responses",
+                status="completed",
+                input_tokens=10,
+                output_tokens=5,
+                estimated_cost_usd=0.00004,
+            ),
+        )
+
+    traces, summary = run_hosted_smoke(hosted, replay_only=True)
+    assert summary.tasks == summary.correct == 2
+    assert summary.input_tokens == 20
+    assert all(trace.generation and trace.generation.replayed for trace in traces)
+    assert all(trace.request_sha256 for trace in traces)
+    assert all(trace.configuration_sha256 for trace in traces)
+    assert all(trace.software_revision for trace in traces)
+    assert all(trace.schema_pack for trace in traces)
+
+
+def test_load_hosted_config_records_luna_settings(tmp_path: Path) -> None:
+    config_path = tmp_path / "hosted.yaml"
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "run_id": "hosted",
+                "method_id": "B0",
+                "tasks_path": "tasks.json",
+                "databases_root": "db",
+                "manifest_path": "manifest.json",
+                "recording_path": "recording.json",
+                "output_path": "trace.jsonl",
+                "model": {"model_name": "gpt-5.6-luna", "store": False},
+                "budget": {"project_limit_usd": 95.0, "run_limit_usd": 5.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    loaded = load_hosted_run_config(config_path)
+    assert loaded.model.model_name == "gpt-5.6-luna"
+    assert loaded.model.store is False
+    assert loaded.budget.project_limit_usd < 100

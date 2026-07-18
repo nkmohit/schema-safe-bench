@@ -208,20 +208,44 @@ class GenerationRequest(StrictModel):
     temperature: float = 0.0
     max_output_tokens: int = Field(default=1000, ge=1)
     prompt_version: str
+    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] = "none"
 
 
 class GenerationResponse(StrictModel):
     raw_output: str
     model_name: str
+    requested_model_name: str | None = None
+    provider: Literal["offline", "openai"] = "offline"
+    endpoint: Literal["offline", "responses"] = "offline"
+    status: Literal["offline", "completed", "incomplete", "failed"] = "offline"
     input_tokens: int | None = None
+    cached_input_tokens: int | None = None
     output_tokens: int | None = None
     request_elapsed_ms: float | None = None
+    estimated_cost_usd: float | None = None
+    replayed: bool = False
+
+
+class GenerationRecord(StrictModel):
+    task_id: str
+    request_sha256: str
+    response: GenerationResponse
+
+
+class GenerationRecording(StrictModel):
+    format_version: Literal["1"] = "1"
+    provider: Literal["openai"] = "openai"
+    requested_model_name: str
+    records: list[GenerationRecord] = Field(default_factory=list)
 
 
 class Prediction(StrictModel):
     task_id: str
     sql: str
     raw_output: str | None = None
+    request_sha256: str | None = None
+    generation: GenerationResponse | None = None
+    schema_pack: SchemaPack | None = None
 
 
 class AuditTrace(StrictModel):
@@ -232,6 +256,11 @@ class AuditTrace(StrictModel):
     question: str
     candidate_sql: str
     raw_output: str
+    request_sha256: str | None = None
+    configuration_sha256: str | None = None
+    software_revision: str | None = None
+    schema_pack: SchemaPack | None = None
+    generation: GenerationResponse | None = None
     repair_count: int = Field(default=0, ge=0, le=1)
     validation: ValidationResult
     execution: ExecutionResult
@@ -248,6 +277,9 @@ class RunSummary(StrictModel):
     abstained: int
     invalid: int
     execution_errors: int
+    input_tokens: int = 0
+    output_tokens: int = 0
+    estimated_cost_usd: float = 0.0
 
 
 class SmokeRunConfig(StrictModel):
@@ -258,6 +290,38 @@ class SmokeRunConfig(StrictModel):
     manifest_path: Path
     predictions_path: Path
     output_path: Path
+    execution: ExecutionLimits = Field(default_factory=ExecutionLimits)
+
+
+class HostedModelConfig(StrictModel):
+    provider: Literal["openai"] = "openai"
+    model_name: Literal["gpt-5.6-luna"] = "gpt-5.6-luna"
+    endpoint: Literal["responses"] = "responses"
+    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
+    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] = "none"
+    max_output_tokens: int = Field(default=1000, ge=1, le=128_000)
+    store: Literal[False] = False
+    timeout_seconds: float = Field(default=120.0, gt=0)
+    max_retries: int = Field(default=2, ge=0, le=5)
+
+
+class SpendBudgetConfig(StrictModel):
+    project_limit_usd: float = Field(default=95.0, gt=0, lt=100)
+    run_limit_usd: float = Field(default=5.0, gt=0)
+    ledger_path: Path = Path(".cache/schema-safe-bench/openai-spend.json")
+
+
+class HostedRunConfig(StrictModel):
+    run_id: str
+    method_id: Literal["B0"]
+    tasks_path: Path
+    databases_root: Path
+    manifest_path: Path
+    recording_path: Path
+    output_path: Path
+    environment_path: Path = Path(".env")
+    model: HostedModelConfig = Field(default_factory=HostedModelConfig)
+    budget: SpendBudgetConfig = Field(default_factory=SpendBudgetConfig)
     execution: ExecutionLimits = Field(default_factory=ExecutionLimits)
 
 

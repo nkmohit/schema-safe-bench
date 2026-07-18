@@ -19,7 +19,7 @@ from schema_safe_bench.evaluation import (
     write_compatibility_report,
 )
 from schema_safe_bench.models import ExecutionLimits
-from schema_safe_bench.runner import run_and_write
+from schema_safe_bench.runner import run_and_write, run_hosted_and_write
 
 app = typer.Typer(no_args_is_help=True, help="Schema-grounded text-to-SQL evaluation.")
 dataset_app = typer.Typer(no_args_is_help=True, help="Inspect and prepare benchmark tasks.")
@@ -116,6 +116,23 @@ def run_smoke(
 ) -> None:
     """Evaluate saved predictions using a versioned smoke configuration."""
     traces_path, summary_path = run_and_write(config)
+    typer.echo(f"Wrote traces to {traces_path}")
+    typer.echo(f"Wrote summary to {summary_path}")
+
+
+@run_app.command("hosted")
+def run_hosted(
+    config: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    replay_only: Annotated[
+        bool,
+        typer.Option(help="Require recorded responses and make no hosted API calls."),
+    ] = False,
+    output: Annotated[Path | None, typer.Option(dir_okay=False)] = None,
+) -> None:
+    """Generate or replay B0 responses and evaluate them through the shared pipeline."""
+    traces_path, summary_path = run_hosted_and_write(
+        config, replay_only=replay_only, output_path=output
+    )
     typer.echo(f"Wrote traces to {traces_path}")
     typer.echo(f"Wrote summary to {summary_path}")
 

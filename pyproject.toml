@@ -33,6 +33,7 @@ Issues = "https://github.com/nkmohit/schema-safe-bench/issues"
 
 [project.optional-dependencies]
 dense = ["sentence-transformers>=3.4,<4"]
+openai = ["openai>=2,<3", "python-dotenv>=1.1,<2"]
 
 [dependency-groups]
 dev = [
