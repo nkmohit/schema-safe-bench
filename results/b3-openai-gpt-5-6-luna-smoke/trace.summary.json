@@ -1,0 +1,12 @@
+{
+  "run_id": "bird-minidev-select-smoke-b3-openai-gpt-5-6-luna",
+  "method_id": "B3",
+  "tasks": 20,
+  "correct": 3,
+  "abstained": 9,
+  "invalid": 1,
+  "execution_errors": 0,
+  "input_tokens": 6695,
+  "output_tokens": 767,
+  "estimated_cost_usd": 0.011297
+}

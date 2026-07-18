@@ -108,6 +108,8 @@ The paired B1 smoke artifact applies the locked 1,000-character catalog-prefix p
 
 The B2 smoke artifact applies the locked 12-hit BM25 schema-retrieval policy. It records 2 correct results, 6 semantic mismatches, 10 safe abstentions, and 2 validator rejections at an estimated token cost of `$0.011538`. Evaluator-only evidence finds complete required-table coverage on 10 tasks and complete required-column coverage on 8; see [results/b2-openai-gpt-5-6-luna-smoke](results/b2-openai-gpt-5-6-luna-smoke/README.md).
 
+The B3 smoke artifact applies the revision-pinned 12-hit BGE dense-retrieval policy. It records 3 correct results, 7 semantic mismatches, 9 safe abstentions, and 1 validator rejection at an estimated token cost of `$0.011297`. Evaluator-only evidence finds complete required-table coverage on 13 tasks and complete required-column coverage on 9; see [results/b3-openai-gpt-5-6-luna-smoke](results/b3-openai-gpt-5-6-luna-smoke/README.md).
+
 ## Responsible use and limitations
 
 The validator and SQLite sandbox provide defense in depth for controlled experiments. They are not a substitute for database permissions, workload isolation, query review, or production security controls. Generated SQL can execute successfully and still be semantically wrong.

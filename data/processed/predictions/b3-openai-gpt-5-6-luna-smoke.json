@@ -1,0 +1,367 @@
+{
+  "format_version": "1",
+  "provider": "openai",
+  "requested_model_name": "gpt-5.6-luna",
+  "records": [
+    {
+      "task_id": "1028",
+      "request_sha256": "48590551b350d823a944ac63acb7b942e95d8a9c4280e0899bf284ddb1839e09",
+      "response": {
+        "raw_output": "SELECT t.team_long_name\nFROM Match m\nJOIN League l ON m.league_id = l.id\nJOIN Team t ON m.away_team_api_id = t.team_api_id\nWHERE l.name = 'Scotland Premier League'\n  AND m.season = '2010'\n  AND m.away_team_goal > m.home_team_goal\nGROUP BY t.team_api_id, t.team_long_name\nORDER BY COUNT(*) DESC\nLIMIT 1;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 809,
+        "cached_input_tokens": 0,
+        "output_tokens": 97,
+        "request_elapsed_ms": 3530.0646669929847,
+        "estimated_cost_usd": 0.001391,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1042",
+      "request_sha256": "38d25f35fb51ddb01815cce045f8ccf41114778c77796c400ffb925b00a8ce85",
+      "response": {
+        "raw_output": "SELECT l.name\nFROM League AS l\nJOIN Match AS m ON m.league_id = l.id\nWHERE m.season = '2009/2010'\nGROUP BY l.id, l.name\nHAVING AVG(m.home_team_goal) > AVG(m.away_team_goal);",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 1135,
+        "cached_input_tokens": 0,
+        "output_tokens": 62,
+        "request_elapsed_ms": 1183.151999983238,
+        "estimated_cost_usd": 0.001507,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1139",
+      "request_sha256": "28a3c714613dd42629c32e70b24a0749404a02af2c097da00924c20793aaef80",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 706,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 936.2210410181433,
+        "estimated_cost_usd": 0.000748,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1155",
+      "request_sha256": "a0226fba94e5a674a477cfcb6f4fbc9f614cfb4c26a59ee3e752866f9818f47f",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 207,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 999.6277080208529,
+        "estimated_cost_usd": 0.000249,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "116",
+      "request_sha256": "5266d456b46f26de0859b349d54ed7c7c9ba77acf601e560593563a3b7c864a7",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 225,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 808.9077910117339,
+        "estimated_cost_usd": 0.000267,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1185",
+      "request_sha256": "28e6b5bfccad4f0995bfad8b732f09328aee2bbb35bc19998a202894a9baf28c",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 220,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 854.8806670005433,
+        "estimated_cost_usd": 0.000262,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1351",
+      "request_sha256": "f38a991056ad66ec3eb55ee94e556068066107bc7edba78fa6a00cb41c6e1a0d",
+      "response": {
+        "raw_output": "SELECT major.major_name\nFROM member\nJOIN major ON member.link_to_major = major.major_id\nWHERE member.first_name = 'Brent' AND member.last_name = 'Thomason';",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 198,
+        "cached_input_tokens": 0,
+        "output_tokens": 43,
+        "request_elapsed_ms": 1939.986665995093,
+        "estimated_cost_usd": 0.000456,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1389",
+      "request_sha256": "785033dd7581963bc0719d1a083b86997d85b7167e5a0fe9c15cbd56cf38c1fc",
+      "response": {
+        "raw_output": "SELECT e.event_name\nFROM event e\nJOIN budget b ON b.link_to_event = e.event_id\nGROUP BY e.event_id, e.event_name\nORDER BY COALESCE(SUM(b.spent), 0) ASC\nLIMIT 1;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 190,
+        "cached_input_tokens": 0,
+        "output_tokens": 56,
+        "request_elapsed_ms": 1094.074083986925,
+        "estimated_cost_usd": 0.000526,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "1464",
+      "request_sha256": "09eb5158422ba2525a0f5585d67d1485e9aa383cdea01f6b8011aa9d31109543",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 198,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 1608.134040987352,
+        "estimated_cost_usd": 0.00024,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "218",
+      "request_sha256": "f692a8e22f673800671fd1d2ae9259e0c2c9bce16d8f8fa2374e44c383857e79",
+      "response": {
+        "raw_output": "WITH carcinogenic AS (\n  SELECT DISTINCT molecule_id\n  FROM molecule\n  WHERE LOWER(label) LIKE '%carcinogenic%'\n),\ntotals AS (\n  SELECT COUNT(*) AS total_count\n  FROM carcinogenic\n),\nnon_fluorine AS (\n  SELECT COUNT(*) AS non_fluorine_count\n  FROM carcinogenic c\n  WHERE NOT EXISTS (\n    SELECT 1\n    FROM atom a\n    WHERE a.molecule_id = c.molecule_id\n      AND LOWER(a.element) = 'f'\n  )\n)\nSELECT 100.0 * non_fluorine_count / NULLIF(total_count, 0) AS percentage\nFROM totals, non_fluorine",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 195,
+        "cached_input_tokens": 0,
+        "output_tokens": 146,
+        "request_elapsed_ms": 1421.6724580037408,
+        "estimated_cost_usd": 0.001071,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "226",
+      "request_sha256": "c92e977ce9709e0672b7609f2069c57456b9151ffc8b1ea15e57392f68772185",
+      "response": {
+        "raw_output": "SELECT printf('%.5f%%', 100.0 * SUM(CASE WHEN b.bond_type = 'double' THEN 1 ELSE 0 END) / COUNT(*)) FROM bond b JOIN molecule m ON m.molecule_id = b.molecule_id WHERE m.label = 'TR008';",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 207,
+        "cached_input_tokens": 0,
+        "output_tokens": 65,
+        "request_elapsed_ms": 1389.220540993847,
+        "estimated_cost_usd": 0.000597,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "24",
+      "request_sha256": "ef95c6431bbfe0bbe23559da13daaa8b822be1d02320b3ce6625a63eef59b76d",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 364,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 1690.2721659862436,
+        "estimated_cost_usd": 0.000406,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "244",
+      "request_sha256": "b6d56d4ffac19e6bcb71805844a93ac514f40bfead4eedb9bcdb46610c489e44",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 193,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 1055.8264160063118,
+        "estimated_cost_usd": 0.000235,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "414",
+      "request_sha256": "893d7382d46d70ab07ace31adf8a21329fb4a5e328d49aaef99974e570b2af4a",
+      "response": {
+        "raw_output": "SELECT language FROM set_translations WHERE setCode IN (SELECT setCode FROM cards GROUP BY setCode HAVING COUNT(*) = 180);",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 448,
+        "cached_input_tokens": 0,
+        "output_tokens": 32,
+        "request_elapsed_ms": 1202.2015420079697,
+        "estimated_cost_usd": 0.00064,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "459",
+      "request_sha256": "6575b6f9626234593a35d350b6e47082ba211f6b18aca793be421219cc6c264a",
+      "response": {
+        "raw_output": "SELECT id, flavorName, convertedManaCost FROM cards WHERE flavorName IN ('Serra Angel', 'Shrine Keeper');",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 152,
+        "cached_input_tokens": 0,
+        "output_tokens": 29,
+        "request_elapsed_ms": 1344.9814999767113,
+        "estimated_cost_usd": 0.000326,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "47",
+      "request_sha256": "173950c17dd12f92a9793384a6ff8d3034cf22351ad5ab2851afc074e438b13b",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 374,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 752.1026250033174,
+        "estimated_cost_usd": 0.000416,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "637",
+      "request_sha256": "be1aedb2472c46d8112fd912d3f60f876b9df4fcf3d0042d4c5852cb6af0af5c",
+      "response": {
+        "raw_output": "SELECT DISTINCT t.TagName\nFROM posts AS p\nJOIN tags AS t\n  ON p.Tags LIKE '%<' || t.TagName || '>%'\nWHERE p.OwnerDisplayName = 'Mark Meckes'\n  AND p.CommentCount = 0;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 293,
+        "cached_input_tokens": 0,
+        "output_tokens": 56,
+        "request_elapsed_ms": 1114.1609589976724,
+        "estimated_cost_usd": 0.000629,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "740",
+      "request_sha256": "8c51c85ba9d1bc4111f838a746281584415c897b574041d6432efd7f37b6a53d",
+      "response": {
+        "raw_output": "ABSTAIN",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 164,
+        "cached_input_tokens": 0,
+        "output_tokens": 7,
+        "request_elapsed_ms": 2720.010084012756,
+        "estimated_cost_usd": 0.000206,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "800",
+      "request_sha256": "12aa7f694f980aef77fa820224f1d473dc221b06d2f5b4fd5a901f54c79dbed0",
+      "response": {
+        "raw_output": "SELECT 100.0 * SUM(CASE WHEN eye_colour_id = (SELECT attribute_id FROM hero_attribute WHERE attribute_value = 1 LIMIT 1) THEN 1 ELSE 0 END) / COUNT(*) FROM superhero;",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 165,
+        "cached_input_tokens": 0,
+        "output_tokens": 49,
+        "request_elapsed_ms": 1101.910917001078,
+        "estimated_cost_usd": 0.000459,
+        "replayed": false
+      }
+    },
+    {
+      "task_id": "898",
+      "request_sha256": "2248443d8cbbd9f054e6e0937d49d2d650ddc0177857e1525e73705f3a63eca5",
+      "response": {
+        "raw_output": "SELECT forename || ' ' || surname AS name,\n       CAST((julianday('now') - julianday(dob)) / 365.2425 AS INTEGER) AS age\nFROM drivers\nWHERE nationality = 'Japanese'\n  AND dob = (SELECT MAX(dob) FROM drivers WHERE nationality = 'Japanese');",
+        "model_name": "gpt-5.6-luna",
+        "requested_model_name": "gpt-5.6-luna",
+        "provider": "openai",
+        "endpoint": "responses",
+        "status": "completed",
+        "input_tokens": 252,
+        "cached_input_tokens": 0,
+        "output_tokens": 69,
+        "request_elapsed_ms": 1224.9135000165552,
+        "estimated_cost_usd": 0.000666,
+        "replayed": false
+      }
+    }
+  ]
+}

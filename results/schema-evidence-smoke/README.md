@@ -1,15 +1,15 @@
 # Evaluator-only Schema Evidence
 
-These reports apply `reference-sql-identifiers-v1` to the committed B0, B1, and B2 traces. Each report records the SHA-256 digest of its source trace and compares identifiers validated from public reference SQL with the schema context already visible in the corresponding prompt.
+These reports apply `reference-sql-identifiers-v1` to the committed B0 through B3 traces. Each report records the SHA-256 digest of its source trace and compares identifiers validated from public reference SQL with the schema context already visible in the corresponding prompt.
 
-| Metric | B0 | B1 | B2 |
-|---|---:|---:|---:|
-| Full-table-recall tasks | 20 | 15 | 10 |
-| Full-column-recall tasks | 20 | 14 | 8 |
-| Tasks with any retrieval miss | 0 | 6 | 12 |
-| Macro table recall | 1.0000 | 0.8500 | 0.7500 |
-| Macro column recall | 1.0000 | 0.8396 | 0.7256 |
-| Macro table precision | 0.3818 | 0.4682 | 0.5092 |
-| Macro column precision | 0.1263 | 0.1488 | 0.1869 |
+| Metric | B0 | B1 | B2 | B3 |
+|---|---:|---:|---:|---:|
+| Full-table-recall tasks | 20 | 15 | 10 | 13 |
+| Full-column-recall tasks | 20 | 14 | 8 | 9 |
+| Tasks with any retrieval miss | 0 | 6 | 12 | 11 |
+| Macro table recall | 1.0000 | 0.8500 | 0.7500 | 0.8083 |
+| Macro column recall | 1.0000 | 0.8396 | 0.7256 | 0.7413 |
+| Macro table precision | 0.3818 | 0.4682 | 0.5092 | 0.5667 |
+| Macro column precision | 0.1263 | 0.1488 | 0.1869 | 0.1627 |
 
 The analysis is evaluator-only and occurs after generation. Required identifiers never enter retrieval or generation. Precision and recall describe prompt-visible identifiers, not SQL correctness or causal effects.

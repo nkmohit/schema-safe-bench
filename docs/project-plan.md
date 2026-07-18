@@ -66,7 +66,8 @@ Acceptance: prompts contain only the question and allowed schema context; gold S
 - [x] Run and publish paired B0 and B1 smoke artifacts with representative failures.
 - [x] Run and publish the B2 smoke artifact, schema evidence, and paired B0/B1 comparisons.
 - [x] Lock the B3 dense-retrieval model, runtime, cache, ranking, and serialization policy.
-- [ ] Run and publish B3 through B7 on the deterministic public smoke manifest.
+- [x] Run and publish the B3 smoke artifact, schema evidence, and paired B0/B1/B2 comparisons.
+- [ ] Run and publish B4 through B7 on the deterministic public smoke manifest.
 - [ ] Freeze the full evaluation configuration before producing final BIRD results.
 - [ ] Publish raw distributable traces, aggregate tables, and representative failure cases.
 - [ ] Add paired uncertainty and significance analysis only when complete paired predictions exist.
