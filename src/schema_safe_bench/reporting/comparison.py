@@ -118,7 +118,7 @@ def compare_paired_runs(
         treatment=treatment_metrics,
         deltas={
             "correct": treatment_metrics.correct - baseline_metrics.correct,
-            "accuracy": treatment_metrics.accuracy - baseline_metrics.accuracy,
+            "accuracy": round(treatment_metrics.accuracy - baseline_metrics.accuracy, 8),
             "abstained": treatment_metrics.abstained - baseline_metrics.abstained,
             "invalid": treatment_metrics.invalid - baseline_metrics.invalid,
             "execution_errors": (

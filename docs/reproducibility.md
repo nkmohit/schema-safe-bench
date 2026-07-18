@@ -41,7 +41,16 @@ uv run schema-safe-bench dataset verify \
 
 Every run configuration declares a task manifest, method, seed, execution limits, prompt version, and generator settings. Outputs are JSONL traces plus a summary JSON. Local runs are ignored unless deliberately curated as small examples.
 
-For the first hosted B0 path, follow [hosted-generation.md](hosted-generation.md). The committed OpenAI/Luna configuration enforces local spend limits, records API usage without credentials, and supports request-digest-checked offline replay.
+For the hosted B0 and B1 paths, follow [hosted-generation.md](hosted-generation.md). The committed OpenAI/Luna configurations enforce local spend limits, record API usage without credentials, and support request-digest-checked offline replay.
+
+Generate the paired comparison from committed traces with:
+
+```bash
+uv run schema-safe-bench results compare \
+  --baseline results/b0-openai-gpt-5-6-luna-smoke/trace.jsonl \
+  --treatment results/b1-openai-gpt-5-6-luna-smoke/trace.jsonl \
+  --output results/local/b0-vs-b1-comparison.json
+```
 
 ## Evaluator compatibility
 

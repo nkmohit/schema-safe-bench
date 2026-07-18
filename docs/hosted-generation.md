@@ -77,6 +77,21 @@ The committed live run resolves both the requested and returned model identifier
 
 The digest-checked replay reproduced the same summary for all 20 tasks without adding a ledger entry. The generated SQL, model metadata, schema packs, validation outcomes, execution outcomes, and official-compatible comparisons are available in [`results/b0-openai-gpt-5-6-luna-smoke`](../results/b0-openai-gpt-5-6-luna-smoke/README.md).
 
+The committed B1 run links every trace to implementation revision `12d81ff81573ebf60a5f43078b2a687e51943839` and records:
+
+| Record | Value |
+|---|---:|
+| Tasks | 20 |
+| Correct | 4 |
+| Semantic mismatches | 7 |
+| Safe abstentions | 6 |
+| Validator rejections | 3 |
+| Input tokens | 6381 |
+| Output tokens | 1169 |
+| Estimated token cost | `$0.013395` |
+
+The [paired B0-versus-B1 artifact](../results/b0-vs-b1-openai-gpt-5-6-luna-smoke/README.md) is generated from the raw traces. It records lower context, token use, and cost for B1 alongside two correctness regressions and no correctness improvements.
+
 ## Limitations
 
 - Token cost is calculated from API-reported usage and the checked Luna price table; it does not include taxes, account credits, or unrelated provider usage.

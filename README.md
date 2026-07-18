@@ -102,6 +102,8 @@ Evaluator compatibility is verified independently of model performance: 7/7 sema
 
 The first hosted B0 smoke artifact uses `gpt-5.6-luna` on the same 20 tasks. It records 6 correct results, 10 semantic mismatches, 2 safe abstentions, and 2 bounded-execution interruptions at an estimated token cost of `$0.019454`. This is a pipeline smoke result, not a complete benchmark score. See [results/b0-openai-gpt-5-6-luna-smoke](results/b0-openai-gpt-5-6-luna-smoke/README.md).
 
+The paired B1 smoke artifact applies the locked 1,000-character catalog-prefix policy. It records 4 correct results, 7 semantic mismatches, 6 safe abstentions, and 3 validator rejections at an estimated token cost of `$0.013395`. The paired comparison shows lower context and cost but two correctness regressions and no improvements; see [results/b0-vs-b1-openai-gpt-5-6-luna-smoke](results/b0-vs-b1-openai-gpt-5-6-luna-smoke/README.md).
+
 ## Responsible use and limitations
 
 The validator and SQLite sandbox provide defense in depth for controlled experiments. They are not a substitute for database permissions, workload isolation, query review, or production security controls. Generated SQL can execute successfully and still be semantically wrong.

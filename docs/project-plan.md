@@ -61,6 +61,7 @@ Acceptance: prompts contain only the question and allowed schema context; gold S
 - [x] Write non-overwriting JSONL traces and a structured run summary.
 - [x] Record raw output separately from extracted candidate SQL.
 - [x] Bound repair count in the trace schema.
+- [x] Run and publish paired B0 and B1 smoke artifacts with representative failures.
 - [ ] Run B0 through B7 on the deterministic public smoke manifest.
 - [ ] Freeze the full evaluation configuration before producing final BIRD results.
 - [ ] Publish raw distributable traces, aggregate tables, and representative failure cases.
