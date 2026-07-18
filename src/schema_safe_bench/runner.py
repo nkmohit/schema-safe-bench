@@ -38,7 +38,7 @@ from schema_safe_bench.models import (
 )
 from schema_safe_bench.prompting import build_generation_request, extract_candidate_sql
 from schema_safe_bench.reporting import write_run_artifacts
-from schema_safe_bench.retrieval import full_schema_pack
+from schema_safe_bench.retrieval import full_schema_pack, length_truncated_schema_pack
 from schema_safe_bench.validation import SqlValidator
 
 
@@ -77,7 +77,7 @@ def _load_predictions(path: Path) -> dict[str, Prediction]:
 
 def _configuration_sha256(config: SmokeRunConfig | HostedRunConfig) -> str:
     encoded = json.dumps(
-        config.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+        config.model_dump(mode="json", exclude_none=True), sort_keys=True, separators=(",", ":")
     ).encode()
     return hashlib.sha256(encoded).hexdigest()
 
@@ -205,7 +205,7 @@ def run_offline_smoke(config: SmokeRunConfig) -> tuple[list[AuditTrace], RunSumm
 def run_hosted_smoke(
     config: HostedRunConfig, *, replay_only: bool = False
 ) -> tuple[list[AuditTrace], RunSummary]:
-    """Generate or replay B0 outputs, then evaluate them through the shared pipeline."""
+    """Generate or replay hosted outputs, then evaluate them through the shared pipeline."""
     summary_path = config.output_path.with_suffix(".summary.json")
     if config.output_path.exists() or summary_path.exists():
         raise FileExistsError(f"Run output already exists: {config.output_path} or {summary_path}")
@@ -234,7 +234,13 @@ def run_hosted_smoke(
             raise KeyError(f"Manifest task {task_id!r} is absent from the dataset") from exc
         database = find_database(config.databases_root, task.db_id)
         catalog = extract_catalog(database, db_id=task.db_id)
-        schema_pack = full_schema_pack(catalog)
+        if config.method_id == "B0":
+            schema_pack = full_schema_pack(catalog)
+        else:
+            assert config.schema_context and config.schema_context.max_chars
+            schema_pack = length_truncated_schema_pack(
+                catalog, max_chars=config.schema_context.max_chars
+            )
         request = build_generation_request(
             question=task.question,
             schema_pack=schema_pack,

@@ -1,3 +1,5 @@
+import hashlib
+import json
 from collections import Counter
 from pathlib import Path
 
@@ -46,6 +48,14 @@ def test_committed_hosted_smoke_artifact_is_internally_consistent() -> None:
         "bird-execution-v1"
     }
     assert len({trace.configuration_sha256 for trace in traces}) == 1
+    encoded_config = json.dumps(
+        config.model_dump(mode="json", exclude_none=True),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    assert {trace.configuration_sha256 for trace in traces} == {
+        hashlib.sha256(encoded_config).hexdigest()
+    }
     assert {trace.software_revision for trace in traces} == {
         "d9d89a025058c4561e41cca0a711c9082048b05e"
     }

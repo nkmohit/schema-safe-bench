@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from schema_safe_bench.catalog import extract_catalog
 from schema_safe_bench.retrieval import (
     BM25Retriever,
@@ -8,6 +10,7 @@ from schema_safe_bench.retrieval import (
     build_schema_documents,
     build_schema_pack,
     full_schema_pack,
+    length_truncated_schema_pack,
 )
 
 
@@ -56,3 +59,31 @@ def test_full_schema_pack_can_be_truncated(sample_database: Path) -> None:
     pack = full_schema_pack(extract_catalog(sample_database), max_chars=20)
     assert len(pack.serialized) == 20
     assert len(pack.tables) == 2
+
+
+def test_length_truncated_pack_contains_only_complete_visible_schema(
+    sample_database: Path,
+) -> None:
+    catalog = extract_catalog(sample_database)
+    first = length_truncated_schema_pack(catalog, max_chars=80)
+    second = length_truncated_schema_pack(catalog, max_chars=80)
+
+    assert first == second
+    assert len(first.serialized) <= 80
+    assert first.tables
+    assert first.serialized.endswith(")")
+    assert all(table.name in first.serialized for table in first.tables)
+    assert all(
+        column.name in first.serialized for table in first.tables for column in table.columns
+    )
+    assert all(f"FK {foreign_key}" in first.serialized for foreign_key in first.foreign_keys)
+
+
+def test_length_truncated_pack_preserves_schema_that_fits(sample_database: Path) -> None:
+    catalog = extract_catalog(sample_database)
+    assert length_truncated_schema_pack(catalog, max_chars=10_000) == full_schema_pack(catalog)
+
+
+def test_length_truncated_pack_rejects_unusable_budget(sample_database: Path) -> None:
+    with pytest.raises(ValueError, match="too small"):
+        length_truncated_schema_pack(extract_catalog(sample_database), max_chars=1)

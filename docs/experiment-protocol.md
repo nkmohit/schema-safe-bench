@@ -24,6 +24,12 @@ The generator never receives reference SQL, reference results, or labels derived
 
 The canonical method IDs are B0 through B7 as defined in the README. Dense and reranking components are optional dependencies and must record their exact model identifiers and revisions.
 
+### B1 length-truncation policy
+
+B1 applies `catalog-character-prefix-v1`, a fixed 1,000-Unicode-code-point ceiling to the canonical catalog serialization. Tables follow the catalog's case-insensitive name order, columns follow SQLite declaration order, and foreign keys are sorted. The pack admits only complete column declarations; a foreign key appears only when both endpoint columns are visible. Construction stops before the first declaration that would exceed the ceiling, so the structured tables, foreign keys, and serialized prompt context describe the same visible schema.
+
+The policy, manifest digest, ordering rules, and smoke-manifest distribution are locked in [`data/provenance/b1-schema-truncation.json`](../data/provenance/b1-schema-truncation.json). The 1,000-character ceiling truncates 15 of the 20 smoke tasks across eight databases while leaving five tasks whose complete schemas fit the limit unchanged. B1 is therefore a controlled context-pressure baseline, not relevance-based retrieval.
+
 ## Required records
 
 Each task trace records:

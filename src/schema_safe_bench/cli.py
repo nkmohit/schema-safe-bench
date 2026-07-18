@@ -19,6 +19,7 @@ from schema_safe_bench.evaluation import (
     write_compatibility_report,
 )
 from schema_safe_bench.models import ExecutionLimits
+from schema_safe_bench.reporting import compare_paired_runs, load_traces, write_run_comparison
 from schema_safe_bench.runner import run_and_write, run_hosted_and_write
 
 app = typer.Typer(no_args_is_help=True, help="Schema-grounded text-to-SQL evaluation.")
@@ -26,10 +27,12 @@ dataset_app = typer.Typer(no_args_is_help=True, help="Inspect and prepare benchm
 catalog_app = typer.Typer(no_args_is_help=True, help="Extract database schema catalogs.")
 run_app = typer.Typer(no_args_is_help=True, help="Run versioned evaluations.")
 evaluation_app = typer.Typer(no_args_is_help=True, help="Verify evaluation compatibility.")
+results_app = typer.Typer(no_args_is_help=True, help="Compare and inspect benchmark results.")
 app.add_typer(dataset_app, name="dataset")
 app.add_typer(catalog_app, name="catalog")
 app.add_typer(run_app, name="run")
 app.add_typer(evaluation_app, name="evaluation")
+app.add_typer(results_app, name="results")
 
 
 @app.callback()
@@ -129,12 +132,24 @@ def run_hosted(
     ] = False,
     output: Annotated[Path | None, typer.Option(dir_okay=False)] = None,
 ) -> None:
-    """Generate or replay B0 responses and evaluate them through the shared pipeline."""
+    """Generate or replay hosted responses and evaluate them through the shared pipeline."""
     traces_path, summary_path = run_hosted_and_write(
         config, replay_only=replay_only, output_path=output
     )
     typer.echo(f"Wrote traces to {traces_path}")
     typer.echo(f"Wrote summary to {summary_path}")
+
+
+@results_app.command("compare")
+def compare_results_command(
+    baseline: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    treatment: Annotated[Path, typer.Option(exists=True, dir_okay=False, readable=True)],
+    output: Annotated[Path, typer.Option(dir_okay=False)],
+) -> None:
+    """Write a paired comparison for two trace files with identical task IDs."""
+    comparison = compare_paired_runs(load_traces(baseline), load_traces(treatment))
+    path = write_run_comparison(comparison, output)
+    typer.echo(f"Wrote paired comparison to {path}")
 
 
 @evaluation_app.command("compatibility")

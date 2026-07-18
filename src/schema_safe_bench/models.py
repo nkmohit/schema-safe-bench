@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class StrictModel(BaseModel):
@@ -282,6 +282,45 @@ class RunSummary(StrictModel):
     estimated_cost_usd: float = 0.0
 
 
+class ComparedRunMetrics(StrictModel):
+    run_id: str
+    method_id: str
+    configuration_sha256: str
+    software_revisions: list[str]
+    tasks: int
+    correct: int
+    accuracy: float
+    abstained: int
+    invalid: int
+    execution_errors: int
+    failure_categories: dict[str, int]
+    schema_chars: int
+    input_tokens: int
+    output_tokens: int
+    estimated_cost_usd: float
+
+
+class PairedTaskOutcome(StrictModel):
+    task_id: str
+    baseline_outcome: str
+    treatment_outcome: str
+    correctness_change: Literal["improved", "regressed", "unchanged"]
+    baseline_schema_chars: int
+    treatment_schema_chars: int
+
+
+class PairedRunComparison(StrictModel):
+    format_version: Literal["1"] = "1"
+    baseline: ComparedRunMetrics
+    treatment: ComparedRunMetrics
+    deltas: dict[str, float | int]
+    context_truncated_tasks: int
+    improved_task_ids: list[str]
+    regressed_task_ids: list[str]
+    unchanged_task_ids: list[str]
+    paired_outcomes: list[PairedTaskOutcome]
+
+
 class SmokeRunConfig(StrictModel):
     run_id: str
     method_id: str
@@ -311,18 +350,45 @@ class SpendBudgetConfig(StrictModel):
     ledger_path: Path = Path(".cache/schema-safe-bench/openai-spend.json")
 
 
+class HostedSchemaContextConfig(StrictModel):
+    strategy: Literal["full", "length_truncated"]
+    max_chars: int | None = Field(default=None, ge=64)
+    policy_id: str | None = None
+
+    @model_validator(mode="after")
+    def validate_strategy(self) -> "HostedSchemaContextConfig":
+        if self.strategy == "full":
+            if self.max_chars is not None or self.policy_id is not None:
+                raise ValueError("full schema context cannot define truncation settings")
+            return self
+        if self.max_chars is None or not self.policy_id:
+            raise ValueError("length-truncated schema context requires max_chars and policy_id")
+        return self
+
+
 class HostedRunConfig(StrictModel):
     run_id: str
-    method_id: Literal["B0"]
+    method_id: Literal["B0", "B1"]
     tasks_path: Path
     databases_root: Path
     manifest_path: Path
     recording_path: Path
     output_path: Path
+    schema_context: HostedSchemaContextConfig | None = None
     environment_path: Path = Path(".env")
     model: HostedModelConfig = Field(default_factory=HostedModelConfig)
     budget: SpendBudgetConfig = Field(default_factory=SpendBudgetConfig)
     execution: ExecutionLimits = Field(default_factory=ExecutionLimits)
+
+    @model_validator(mode="after")
+    def validate_method_context(self) -> "HostedRunConfig":
+        if self.method_id == "B0":
+            if self.schema_context and self.schema_context.strategy != "full":
+                raise ValueError("B0 requires full schema context")
+            return self
+        if not self.schema_context or self.schema_context.strategy != "length_truncated":
+            raise ValueError("B1 requires length-truncated schema context")
+        return self
 
 
 class AssetTaskCheck(StrictModel):

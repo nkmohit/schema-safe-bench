@@ -7,6 +7,7 @@ from schema_safe_bench.retrieval.schema import (
     build_schema_documents,
     build_schema_pack,
     full_schema_pack,
+    length_truncated_schema_pack,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "build_schema_documents",
     "build_schema_pack",
     "full_schema_pack",
+    "length_truncated_schema_pack",
 ]

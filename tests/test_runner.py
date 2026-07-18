@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 
 from schema_safe_bench.catalog import extract_catalog
@@ -16,7 +17,7 @@ from schema_safe_bench.models import (
 )
 from schema_safe_bench.prompting import build_generation_request
 from schema_safe_bench.reporting import write_run_artifacts
-from schema_safe_bench.retrieval import full_schema_pack
+from schema_safe_bench.retrieval import full_schema_pack, length_truncated_schema_pack
 from schema_safe_bench.runner import (
     load_hosted_run_config,
     load_run_config,
@@ -202,3 +203,81 @@ def test_load_hosted_config_records_luna_settings(tmp_path: Path) -> None:
     assert loaded.model.model_name == "gpt-5.6-luna"
     assert loaded.model.store is False
     assert loaded.budget.project_limit_usd < 100
+
+
+def test_hosted_b1_replays_with_length_truncated_schema(
+    sample_database: Path, tmp_path: Path
+) -> None:
+    config = _run_inputs(sample_database, tmp_path)
+    hosted = HostedRunConfig(
+        run_id="hosted-b1-fixture",
+        method_id="B1",
+        tasks_path=config.tasks_path,
+        databases_root=config.databases_root,
+        manifest_path=config.manifest_path,
+        recording_path=tmp_path / "b1-recording.json",
+        output_path=tmp_path / "b1" / "trace.jsonl",
+        schema_context={
+            "strategy": "length_truncated",
+            "max_chars": 80,
+            "policy_id": "catalog-character-prefix-v1",
+        },
+    )
+    recording = load_recording(hosted.recording_path, model_name=hosted.model.model_name)
+    database = hosted.databases_root / "shop" / "shop.sqlite"
+    schema_pack = length_truncated_schema_pack(
+        extract_catalog(database, db_id="shop"), max_chars=80
+    )
+    for record in json.loads(config.tasks_path.read_text()):
+        task_id = str(record["question_id"])
+        request = build_generation_request(
+            question=record["question"],
+            schema_pack=schema_pack,
+            model_name=hosted.model.model_name,
+            temperature=hosted.model.temperature,
+            max_output_tokens=hosted.model.max_output_tokens,
+            reasoning_effort=hosted.model.reasoning_effort,
+        )
+        save_record(
+            recording,
+            hosted.recording_path,
+            task_id=task_id,
+            digest=request_sha256(task_id, request),
+            response=GenerationResponse(
+                raw_output=record["SQL"],
+                model_name="gpt-5.6-luna",
+                requested_model_name="gpt-5.6-luna",
+                provider="openai",
+                endpoint="responses",
+                status="completed",
+            ),
+        )
+
+    traces, summary = run_hosted_smoke(hosted, replay_only=True)
+    assert summary.method_id == "B1"
+    assert summary.correct == 2
+    assert all(trace.schema_pack == schema_pack for trace in traces)
+    assert all(len(trace.schema_pack.serialized) <= 80 for trace in traces if trace.schema_pack)
+
+
+def test_hosted_method_and_schema_context_must_match() -> None:
+    common = {
+        "run_id": "mismatch",
+        "tasks_path": "tasks.json",
+        "databases_root": "db",
+        "manifest_path": "manifest.json",
+        "recording_path": "recording.json",
+        "output_path": "trace.jsonl",
+    }
+    with pytest.raises(ValueError, match="B1 requires"):
+        HostedRunConfig(method_id="B1", **common)
+    with pytest.raises(ValueError, match="B0 requires"):
+        HostedRunConfig(
+            method_id="B0",
+            schema_context={
+                "strategy": "length_truncated",
+                "max_chars": 1000,
+                "policy_id": "catalog-character-prefix-v1",
+            },
+            **common,
+        )

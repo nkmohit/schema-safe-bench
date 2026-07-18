@@ -2,9 +2,9 @@
 
 SchemaSafeBench's first hosted path uses OpenAI's Responses API with `gpt-5.6-luna`. The adapter implements the existing provider-neutral generator contract; evaluator, validator, execution, and result-comparison code remain provider independent.
 
-## Locked B0 configuration
+## Locked B0 and B1 configurations
 
-The committed smoke configuration is [`configs/runs/b0-openai-luna-smoke.yaml`](../configs/runs/b0-openai-luna-smoke.yaml). It records:
+The committed smoke configurations are [`configs/runs/b0-openai-luna-smoke.yaml`](../configs/runs/b0-openai-luna-smoke.yaml) and [`configs/runs/b1-openai-luna-smoke.yaml`](../configs/runs/b1-openai-luna-smoke.yaml). They record:
 
 - provider and Responses API endpoint;
 - requested model identifier and the model identifier returned by the API;
@@ -14,7 +14,7 @@ The committed smoke configuration is [`configs/runs/b0-openai-luna-smoke.yaml`](
 - `store: false`, so the project does not request server-side response storage;
 - configuration digest and Git software revision.
 
-The B0 prompt contains only the public question and the database's full schema catalog. Reference SQL and reference results remain evaluator-only.
+The B0 prompt contains only the public question and the database's full schema catalog. B1 changes only the schema context by applying the provenance-locked `catalog-character-prefix-v1` policy described in [the experiment protocol](experiment-protocol.md#b1-length-truncation-policy). Reference SQL and reference results remain evaluator-only.
 
 ## Local credential setup
 
@@ -40,12 +40,14 @@ The machine-readable pricing and API provenance is recorded in [`data/provenance
 
 ## Live generation and deterministic replay
 
-Run the hosted smoke configuration:
+Run a hosted smoke configuration:
 
 ```bash
 uv run schema-safe-bench run hosted \
   --config configs/runs/b0-openai-luna-smoke.yaml
 ```
+
+Use `configs/runs/b1-openai-luna-smoke.yaml` for B1. Both methods use the same model, prompt version, sampling settings, output cap, task manifest, validator, executor, and evaluator policy.
 
 Each successful response is saved atomically to the configured recording. A rerun validates the request digest and reuses that response without making another API call. To require a fully offline path, use a different output path:
 

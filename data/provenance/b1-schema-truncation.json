@@ -1,0 +1,34 @@
+{
+  "policy_id": "catalog-character-prefix-v1",
+  "method_id": "B1",
+  "unit": "unicode_code_points",
+  "max_chars": 1000,
+  "ordering": {
+    "tables": "case-insensitive SQLite catalog-name order",
+    "columns": "SQLite pragma_table_info column order",
+    "foreign_keys": "lexicographic order"
+  },
+  "atomicity": {
+    "columns": "complete name and declared-type pairs only",
+    "foreign_keys": "included only when both endpoint columns are visible",
+    "partial_declarations": false,
+    "stop_rule": "stop before the first schema declaration that would exceed max_chars"
+  },
+  "implementation": "src/schema_safe_bench/retrieval/schema.py#length_truncated_schema_pack",
+  "method_config": "configs/methods/b1-length-truncated-schema.yaml",
+  "run_config": "configs/runs/b1-openai-luna-smoke.yaml",
+  "manifest": {
+    "path": "data/processed/manifests/bird-minidev-select-smoke.json",
+    "sha256": "2ff3561dd1fc1170bee64209716a1bc1a9e2976a7b7bf9d3e7a1592a0775d375",
+    "tasks": 20,
+    "databases": 10
+  },
+  "smoke_manifest_effect": {
+    "full_schema_chars_min": 395,
+    "full_schema_chars_median": 1185,
+    "full_schema_chars_max": 5564,
+    "truncated_tasks": 15,
+    "truncated_databases": 8,
+    "unchanged_tasks_that_fit": 5
+  }
+}

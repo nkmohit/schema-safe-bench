@@ -50,6 +50,7 @@ Acceptance: tests demonstrate that rejected SQL cannot reach the executor and eq
 - [x] Version generation and one-repair prompt contracts.
 - [x] Define a provider-neutral generator interface and offline replay adapter.
 - [x] Add one hosted-model adapter after credentials and provider choice are configured locally.
+- [x] Lock a deterministic B1 length-truncation policy with prompt-faithful schema traces.
 - [ ] Record the embedding model identifier and immutable revision for dense runs.
 
 Acceptance: prompts contain only the question and allowed schema context; gold SQL has no API path into generation or repair builders.

@@ -178,6 +178,71 @@ def full_schema_pack(catalog: Catalog, *, max_chars: int | None = None) -> Schem
     return build_schema_pack(catalog, hits=[], include_all=True, max_chars=max_chars)
 
 
+def length_truncated_schema_pack(catalog: Catalog, *, max_chars: int) -> SchemaPack:
+    """Build a deterministic catalog prefix without partial schema declarations."""
+    if max_chars < 1:
+        raise ValueError("max_chars must be positive")
+    full = full_schema_pack(catalog)
+    if len(full.serialized) <= max_chars:
+        return full
+
+    included: list[SchemaPackTable] = []
+    stopped = False
+    for table in catalog.tables:
+        visible_columns = []
+        for column in table.columns:
+            candidate_columns = [*visible_columns, column]
+            candidate_tables = [
+                *included,
+                SchemaPackTable(name=table.name, columns=candidate_columns),
+            ]
+            candidate_foreign_keys = _visible_foreign_keys(catalog, candidate_tables)
+            if len(_serialize_schema(candidate_tables, candidate_foreign_keys)) > max_chars:
+                stopped = True
+                break
+            visible_columns = candidate_columns
+        if visible_columns:
+            included.append(SchemaPackTable(name=table.name, columns=visible_columns))
+        if stopped:
+            break
+
+    if not included:
+        raise ValueError("max_chars is too small for the first schema declaration")
+    foreign_keys = _visible_foreign_keys(catalog, included)
+    serialized = _serialize_schema(included, foreign_keys)
+    return SchemaPack(
+        tables=included,
+        foreign_keys=foreign_keys,
+        retrieval_hits=[],
+        serialized=serialized,
+    )
+
+
+def _visible_foreign_keys(catalog: Catalog, tables: list[SchemaPackTable]) -> list[str]:
+    visible_columns = {table.name: {column.name for column in table.columns} for table in tables}
+    return sorted(
+        {
+            f"{table.name}.{foreign_key.from_column} -> "
+            f"{foreign_key.to_table}.{foreign_key.to_column}"
+            for table in catalog.tables
+            if table.name in visible_columns
+            for foreign_key in table.foreign_keys
+            if foreign_key.to_table in visible_columns
+            and foreign_key.from_column in visible_columns[table.name]
+            and foreign_key.to_column in visible_columns[foreign_key.to_table]
+        }
+    )
+
+
+def _serialize_schema(tables: list[SchemaPackTable], foreign_keys: list[str]) -> str:
+    lines = []
+    for table in tables:
+        columns_text = ", ".join(f"{column.name} {column.data_type}" for column in table.columns)
+        lines.append(f"{table.name}({columns_text})")
+    lines.extend(f"FK {foreign_key}" for foreign_key in foreign_keys)
+    return "\n".join(lines)
+
+
 def build_schema_pack(
     catalog: Catalog,
     hits: list[RetrievalHit],
@@ -219,12 +284,7 @@ def build_schema_pack(
             if foreign_key.to_table in names
         }
     )
-    lines = []
-    for table in pack_tables:
-        columns_text = ", ".join(f"{column.name} {column.data_type}" for column in table.columns)
-        lines.append(f"{table.name}({columns_text})")
-    lines.extend(f"FK {foreign_key}" for foreign_key in foreign_keys)
-    serialized = "\n".join(lines)
+    serialized = _serialize_schema(pack_tables, foreign_keys)
     if max_chars is not None:
         serialized = serialized[:max_chars]
     return SchemaPack(

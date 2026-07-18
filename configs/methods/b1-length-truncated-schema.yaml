@@ -1,0 +1,13 @@
+method_id: B1
+schema_context:
+  strategy: length_truncated
+  max_chars: 1000
+  policy_id: catalog-character-prefix-v1
+reliability:
+  validate: true
+  max_repairs: 0
+  allow_abstain: true
+execution:
+  row_limit: 100000
+  vm_step_budget: 1000000
+  progress_interval: 1000
