@@ -199,6 +199,23 @@ The committed B6 run links every trace to implementation revision `52c1232c6b864
 
 Every B6 trace preserves the B4 request digest, candidate, schema pack, and generation; normalized repair cause; stage-bound repair digest and generation when eligible; final validation, execution, comparison, and evaluator-only evidence. The [B4 controlled comparison](../results/b4-vs-b6-openai-gpt-5-6-luna-smoke/README.md) reports unchanged correctness and the two terminal-state transitions.
 
+The committed B7 run links every trace to implementation revision `9061bf3e77d8cf9239fed2f76298f41e963c767a` and records:
+
+| Record | Value |
+|---|---:|
+| Tasks | 20 |
+| Correct | 3 |
+| Semantic mismatches | 9 |
+| Model / enforced abstentions | 6 / 2 |
+| Validator rejections | 0 |
+| Execution errors or interruptions | 0 |
+| Abstention coverage | 40% |
+| New hosted requests | 0 |
+| Incremental token cost | `$0.000000` |
+| Total treatment token cost | `$0.013090` |
+
+Every B7 trace preserves the B4 request digest, candidate, schema pack, generation, first-pass safety outcome, normalized enforcement cause, and terminal decision. The [B4 controlled comparison](../results/b4-vs-b7-openai-gpt-5-6-luna-smoke/README.md) reports unchanged correctness and the two unsafe-terminal-to-abstention transitions.
+
 ## Limitations
 
 - Token cost is calculated from API-reported usage and the checked Luna price table; it does not include taxes, account credits, or unrelated provider usage.

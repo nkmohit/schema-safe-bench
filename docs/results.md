@@ -1,6 +1,6 @@
 # Results
 
-The repository publishes seven hosted pipeline smoke artifacts over the same committed 20-task BIRD Mini-Dev manifest. They are not complete benchmark scores.
+The repository publishes eight hosted pipeline smoke artifacts over the same committed 20-task BIRD Mini-Dev manifest. They are not complete benchmark scores.
 
 - B0 full schema: 6 correct, 2 safe abstentions, 10 semantic mismatches, and 2 bounded-execution interruptions.
 - B1 length-truncated schema: 4 correct, 6 safe abstentions, 7 semantic mismatches, and 3 validator rejections.
@@ -9,5 +9,6 @@ The repository publishes seven hosted pipeline smoke artifacts over the same com
 - B4 hybrid schema retrieval: 3 correct, 6 safe abstentions, 9 semantic mismatches, 1 validator rejection, and 1 bounded-execution interruption.
 - B5 hybrid plus reranking: 2 correct, 8 safe abstentions, 8 semantic mismatches, and 2 validator rejections.
 - B6 B4 plus bounded repair: 3 correct, 7 safe abstentions, 9 semantic mismatches, and 1 validator rejection.
+- B7 B4 plus deterministic abstention: 3 correct, 8 safe abstentions, and 9 semantic mismatches.
 
-The generated paired comparisons report configuration and implementation revisions, per-task transitions, schema context, evidence, token use, cost, and limitations. The B6 result links its controlled B4 comparison and a B0 context comparison. Every number resolves to a task manifest, locked configuration, raw trace set, exact response recording, and aggregation command.
+The generated paired comparisons report configuration and implementation revisions, per-task transitions, schema context, evidence, token use, cost, and limitations. The B6 and B7 results link their controlled B4 comparisons and B0 context comparisons. Every number resolves to a task manifest, locked configuration, raw trace set, exact response recording, and aggregation command.

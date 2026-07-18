@@ -55,6 +55,17 @@
     "unsafe_terminal_avoidance_rate": "enforced abstentions divided by validator or controlled-execution eligible tasks",
     "overall_abstention_precision": "not identifiable for model-produced abstentions because no counterfactual SQL exists"
   },
+  "published_result": {
+    "implementation_revision": "9061bf3e77d8cf9239fed2f76298f41e963c767a",
+    "trace_sha256": "ee12b842d42e9a5597b874ab3df4850dc15875c533e80c75c5f1861ee97a9c82",
+    "summary_sha256": "eea392a9744d72a83ea184e3f17c1f5c8f01a147c92a56c636999d6b0d317453",
+    "schema_evidence_sha256": "9040db090cdcb355473e4cad4ed3ae43bcc4287b6734b1d9a5e059fd22500fd7",
+    "model_abstentions": 6,
+    "enforced_abstentions": 2,
+    "correct": 3,
+    "incremental_cost_usd": 0,
+    "total_cost_usd": 0.01309
+  },
   "method_config": "configs/methods/b7-hybrid-validator-abstention.yaml",
   "run_config": "configs/runs/b7-openai-luna-smoke.yaml",
   "manifest": {
