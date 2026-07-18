@@ -52,10 +52,10 @@ uv run schema-safe-bench results compare \
   --output results/local/b0-vs-b1-comparison.json
 ```
 
-For B2 and B3, regenerate evaluator-only evidence before producing comparisons that include retrieval diagnostics:
+For B2 through B4, regenerate evaluator-only evidence before producing comparisons that include retrieval diagnostics:
 
 ```bash
-for method in b0 b1 b2 b3; do
+for method in b0 b1 b2 b3 b4; do
   uv run schema-safe-bench results schema-evidence \
     --trace results/${method}-openai-gpt-5-6-luna-smoke/trace.jsonl \
     --tasks data/raw/bird-minidev/mini_dev_sqlite.json \
@@ -65,10 +65,10 @@ done
 
 uv run schema-safe-bench results compare \
   --baseline results/b0-openai-gpt-5-6-luna-smoke/trace.jsonl \
-  --treatment results/b3-openai-gpt-5-6-luna-smoke/trace.jsonl \
+  --treatment results/b4-openai-gpt-5-6-luna-smoke/trace.jsonl \
   --baseline-evidence results/local/schema-evidence/b0.json \
-  --treatment-evidence results/local/schema-evidence/b3.json \
-  --output results/local/b0-vs-b3-comparison.json
+  --treatment-evidence results/local/schema-evidence/b4.json \
+  --output results/local/b0-vs-b4-comparison.json
 ```
 
 ## Evaluator compatibility

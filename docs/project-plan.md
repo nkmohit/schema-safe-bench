@@ -68,7 +68,8 @@ Acceptance: prompts contain only the question and allowed schema context; gold S
 - [x] Lock the B3 dense-retrieval model, runtime, cache, ranking, and serialization policy.
 - [x] Run and publish the B3 smoke artifact, schema evidence, and paired B0/B1/B2 comparisons.
 - [x] Lock the B4 hybrid fusion, component-audit, tie-breaking, and serialization policy.
-- [ ] Run and publish B4 through B7 on the deterministic public smoke manifest.
+- [x] Run and publish the B4 smoke artifact, schema evidence, and paired B0/B1/B2/B3 comparisons.
+- [ ] Run and publish B5 through B7 on the deterministic public smoke manifest.
 - [ ] Freeze the full evaluation configuration before producing final BIRD results.
 - [ ] Publish raw distributable traces, aggregate tables, and representative failure cases.
 - [ ] Add paired uncertainty and significance analysis only when complete paired predictions exist.
