@@ -64,7 +64,8 @@ Acceptance: prompts contain only the question and allowed schema context; gold S
 - [x] Record raw output separately from extracted candidate SQL.
 - [x] Bound repair count in the trace schema.
 - [x] Run and publish paired B0 and B1 smoke artifacts with representative failures.
-- [ ] Run and publish B2 through B7 on the deterministic public smoke manifest.
+- [x] Run and publish the B2 smoke artifact, schema evidence, and paired B0/B1 comparisons.
+- [ ] Run and publish B3 through B7 on the deterministic public smoke manifest.
 - [ ] Freeze the full evaluation configuration before producing final BIRD results.
 - [ ] Publish raw distributable traces, aggregate tables, and representative failure cases.
 - [ ] Add paired uncertainty and significance analysis only when complete paired predictions exist.

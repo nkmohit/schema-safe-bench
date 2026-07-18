@@ -104,6 +104,21 @@ The committed B1 run links every trace to implementation revision `12d81ff81573e
 
 The [paired B0-versus-B1 artifact](../results/b0-vs-b1-openai-gpt-5-6-luna-smoke/README.md) is generated from the raw traces. It records lower context, token use, and cost for B1 alongside two correctness regressions and no correctness improvements.
 
+The committed B2 run links every trace to implementation revision `719d6a812cd37c7e6d4e504f3c09c5b0d977be9e` and records:
+
+| Record | Value |
+|---|---:|
+| Tasks | 20 |
+| Correct | 2 |
+| Semantic mismatches | 6 |
+| Safe abstentions | 10 |
+| Validator rejections | 2 |
+| Input tokens | 6102 |
+| Output tokens | 906 |
+| Estimated token cost | `$0.011538` |
+
+The B2 trace records all 240 ranked retrieval hits and evaluator-only schema evidence. The [B0-versus-B2](../results/b0-vs-b2-openai-gpt-5-6-luna-smoke/README.md) and [B1-versus-B2](../results/b1-vs-b2-openai-gpt-5-6-luna-smoke/README.md) artifacts preserve paired outcomes, context, evidence, token use, cost, and interpretation limits.
+
 ## Limitations
 
 - Token cost is calculated from API-reported usage and the checked Luna price table; it does not include taxes, account credits, or unrelated provider usage.

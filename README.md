@@ -104,6 +104,8 @@ The first hosted B0 smoke artifact uses `gpt-5.6-luna` on the same 20 tasks. It 
 
 The paired B1 smoke artifact applies the locked 1,000-character catalog-prefix policy. It records 4 correct results, 7 semantic mismatches, 6 safe abstentions, and 3 validator rejections at an estimated token cost of `$0.013395`. The paired comparison shows lower context and cost but two correctness regressions and no improvements; see [results/b0-vs-b1-openai-gpt-5-6-luna-smoke](results/b0-vs-b1-openai-gpt-5-6-luna-smoke/README.md).
 
+The B2 smoke artifact applies the locked 12-hit BM25 schema-retrieval policy. It records 2 correct results, 6 semantic mismatches, 10 safe abstentions, and 2 validator rejections at an estimated token cost of `$0.011538`. Evaluator-only evidence finds complete required-table coverage on 10 tasks and complete required-column coverage on 8; see [results/b2-openai-gpt-5-6-luna-smoke](results/b2-openai-gpt-5-6-luna-smoke/README.md).
+
 ## Responsible use and limitations
 
 The validator and SQLite sandbox provide defense in depth for controlled experiments. They are not a substitute for database permissions, workload isolation, query review, or production security controls. Generated SQL can execute successfully and still be semantically wrong.

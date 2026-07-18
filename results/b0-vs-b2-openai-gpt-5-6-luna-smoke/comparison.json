@@ -1,0 +1,281 @@
+{
+  "format_version": "1",
+  "baseline": {
+    "run_id": "bird-minidev-select-smoke-b0-openai-gpt-5-6-luna",
+    "method_id": "B0",
+    "configuration_sha256": "e43462a85b4acdd3a32825e6eebdc84e92d202730cf22fe0aa0a71648a54b3cc",
+    "software_revisions": [
+      "d9d89a025058c4561e41cca0a711c9082048b05e"
+    ],
+    "tasks": 20,
+    "correct": 6,
+    "accuracy": 0.3,
+    "abstained": 2,
+    "invalid": 0,
+    "execution_errors": 2,
+    "failure_categories": {
+      "execution_failure": 2,
+      "safe_abstention": 2,
+      "semantic_mismatch": 10
+    },
+    "schema_chars": 38634,
+    "input_tokens": 11588,
+    "output_tokens": 1311,
+    "estimated_cost_usd": 0.019454,
+    "schema_evidence": {
+      "tasks": 20,
+      "tasks_with_full_table_recall": 20,
+      "tasks_with_full_column_recall": 20,
+      "retrieval_misses": 0,
+      "macro_table_recall": 1.0,
+      "macro_table_precision": 0.3817628205128205,
+      "macro_column_recall": 1.0,
+      "macro_column_precision": 0.1263144517425337,
+      "macro_combined_recall": 1.0,
+      "macro_combined_precision": 0.14688938679029534,
+      "micro_table_recall": 1.0,
+      "micro_table_precision": 0.3384615384615385,
+      "micro_column_recall": 1.0,
+      "micro_column_precision": 0.06909547738693467
+    }
+  },
+  "treatment": {
+    "run_id": "bird-minidev-select-smoke-b2-openai-gpt-5-6-luna",
+    "method_id": "B2",
+    "configuration_sha256": "f05b07b6afe72605cf75158b645a32fecd7e87f28189016f4d00181f69d099ad",
+    "software_revisions": [
+      "719d6a812cd37c7e6d4e504f3c09c5b0d977be9e"
+    ],
+    "tasks": 20,
+    "correct": 2,
+    "accuracy": 0.1,
+    "abstained": 10,
+    "invalid": 2,
+    "execution_errors": 0,
+    "failure_categories": {
+      "safe_abstention": 10,
+      "semantic_mismatch": 6,
+      "validator_rejection": 2
+    },
+    "schema_chars": 15827,
+    "input_tokens": 6102,
+    "output_tokens": 906,
+    "estimated_cost_usd": 0.011538,
+    "schema_evidence": {
+      "tasks": 20,
+      "tasks_with_full_table_recall": 10,
+      "tasks_with_full_column_recall": 8,
+      "retrieval_misses": 12,
+      "macro_table_recall": 0.75,
+      "macro_table_precision": 0.5091666666666667,
+      "macro_column_recall": 0.7255555555555555,
+      "macro_column_precision": 0.18692697630247454,
+      "macro_combined_recall": 0.7325610500610501,
+      "macro_combined_precision": 0.21593635939224173,
+      "micro_table_recall": 0.75,
+      "micro_table_precision": 0.4782608695652174,
+      "micro_column_recall": 0.7363636363636363,
+      "micro_column_precision": 0.10990502035278155
+    }
+  },
+  "deltas": {
+    "correct": -4,
+    "accuracy": -0.2,
+    "abstained": 8,
+    "invalid": 2,
+    "execution_errors": -2,
+    "schema_chars": -22807,
+    "input_tokens": -5486,
+    "output_tokens": -405,
+    "estimated_cost_usd": -0.007916
+  },
+  "context_truncated_tasks": 17,
+  "improved_task_ids": [
+    "414"
+  ],
+  "regressed_task_ids": [
+    "1042",
+    "24",
+    "47",
+    "740",
+    "800"
+  ],
+  "unchanged_task_ids": [
+    "1028",
+    "1139",
+    "1155",
+    "116",
+    "1185",
+    "1351",
+    "1389",
+    "1464",
+    "218",
+    "226",
+    "244",
+    "459",
+    "637",
+    "898"
+  ],
+  "paired_outcomes": [
+    {
+      "task_id": "1028",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "semantic_mismatch",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 5564,
+      "treatment_schema_chars": 2488
+    },
+    {
+      "task_id": "1042",
+      "baseline_outcome": "correct",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "regressed",
+      "baseline_schema_chars": 5564,
+      "treatment_schema_chars": 2591
+    },
+    {
+      "task_id": "1139",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "semantic_mismatch",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 5564,
+      "treatment_schema_chars": 2591
+    },
+    {
+      "task_id": "1155",
+      "baseline_outcome": "safe_abstention",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 901,
+      "treatment_schema_chars": 720
+    },
+    {
+      "task_id": "116",
+      "baseline_outcome": "execution_failure",
+      "treatment_outcome": "validator_rejection",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 1185,
+      "treatment_schema_chars": 565
+    },
+    {
+      "task_id": "1185",
+      "baseline_outcome": "safe_abstention",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 901,
+      "treatment_schema_chars": 237
+    },
+    {
+      "task_id": "1351",
+      "baseline_outcome": "correct",
+      "treatment_outcome": "correct",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 1180,
+      "treatment_schema_chars": 412
+    },
+    {
+      "task_id": "1389",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "semantic_mismatch",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 1180,
+      "treatment_schema_chars": 393
+    },
+    {
+      "task_id": "1464",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "validator_rejection",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 1180,
+      "treatment_schema_chars": 655
+    },
+    {
+      "task_id": "218",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "semantic_mismatch",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 395,
+      "treatment_schema_chars": 395
+    },
+    {
+      "task_id": "226",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "semantic_mismatch",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 395,
+      "treatment_schema_chars": 395
+    },
+    {
+      "task_id": "24",
+      "baseline_outcome": "correct",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "regressed",
+      "baseline_schema_chars": 1759,
+      "treatment_schema_chars": 857
+    },
+    {
+      "task_id": "244",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 395,
+      "treatment_schema_chars": 395
+    },
+    {
+      "task_id": "414",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "correct",
+      "correctness_change": "improved",
+      "baseline_schema_chars": 2152,
+      "treatment_schema_chars": 728
+    },
+    {
+      "task_id": "459",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "semantic_mismatch",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 2152,
+      "treatment_schema_chars": 240
+    },
+    {
+      "task_id": "47",
+      "baseline_outcome": "correct",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "regressed",
+      "baseline_schema_chars": 1759,
+      "treatment_schema_chars": 866
+    },
+    {
+      "task_id": "637",
+      "baseline_outcome": "execution_failure",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 1771,
+      "treatment_schema_chars": 354
+    },
+    {
+      "task_id": "740",
+      "baseline_outcome": "correct",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "regressed",
+      "baseline_schema_chars": 1069,
+      "treatment_schema_chars": 270
+    },
+    {
+      "task_id": "800",
+      "baseline_outcome": "correct",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "regressed",
+      "baseline_schema_chars": 1069,
+      "treatment_schema_chars": 298
+    },
+    {
+      "task_id": "898",
+      "baseline_outcome": "semantic_mismatch",
+      "treatment_outcome": "safe_abstention",
+      "correctness_change": "unchanged",
+      "baseline_schema_chars": 2499,
+      "treatment_schema_chars": 377
+    }
+  ]
+}
