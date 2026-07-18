@@ -57,12 +57,11 @@ uv run schema-safe-bench run smoke --help
 
 See [data/README.md](data/README.md) for the expected BIRD layout and [docs/reproducibility.md](docs/reproducibility.md) for the complete run sequence.
 
-The complete 500-task, 11-database B0-B7 protocol is frozen and provider-free preflighted. Its
-expanded execution remains blocked by the unchanged `$5` per-run cap and the reference-execution
-gate; no cap was raised and no task was removed. See
+The complete 500-task, 11-database B0-B7 protocol is frozen with deterministic manifests,
+database provenance, replay-safe configurations, and a machine-readable readiness report. See
 [docs/full-evaluation-freeze.md](docs/full-evaluation-freeze.md).
 
-The hosted-generation path uses a locally configured OpenAI credential and `gpt-5.6-luna`, with a project spend guard and deterministic response replay. B0 supplies the full schema, B1 applies a provenance-locked 1,000-character catalog-prefix policy, B2 applies BM25 schema retrieval, B3 applies revision-pinned local dense retrieval, B4 applies locked reciprocal-rank fusion over B2 and B3, and B5 locally reranks a fixed B4 candidate set. B6 and B7 reuse the exact B4 first pass for bounded repair and deterministic terminal abstention respectively. See [docs/hosted-generation.md](docs/hosted-generation.md). No hosted API calls run in CI.
+The hosted-generation path uses a locally configured OpenAI credential and `gpt-5.6-luna` with deterministic response replay. B0 supplies the full schema, B1 applies a provenance-locked 1,000-character catalog-prefix policy, B2 applies BM25 schema retrieval, B3 applies revision-pinned local dense retrieval, B4 applies locked reciprocal-rank fusion over B2 and B3, and B5 locally reranks a fixed B4 candidate set. B6 and B7 reuse the exact B4 first pass for bounded repair and deterministic terminal abstention respectively. See [docs/hosted-generation.md](docs/hosted-generation.md). No hosted API calls run in CI.
 
 Install the optional local-model stack only for experiments that use the documented embedding model or reranker:
 
@@ -107,21 +106,20 @@ No benchmark performance claim is published until the corresponding configuratio
 
 Evaluator compatibility is verified independently of model performance: 7/7 semantic edge cases and 20/20 committed smoke tasks match the pinned official BIRD evaluator behavior.
 
-The first hosted B0 smoke artifact uses `gpt-5.6-luna` on the same 20 tasks. It records 6 correct results, 10 semantic mismatches, 2 safe abstentions, and 2 bounded-execution interruptions at an estimated token cost of `$0.019454`. This is a pipeline smoke result, not a complete benchmark score. See [results/b0-openai-gpt-5-6-luna-smoke](results/b0-openai-gpt-5-6-luna-smoke/README.md).
+All rows below use `gpt-5.6-luna` on the same deterministic 20-task smoke manifest.
 
-The paired B1 smoke artifact applies the locked 1,000-character catalog-prefix policy. It records 4 correct results, 7 semantic mismatches, 6 safe abstentions, and 3 validator rejections at an estimated token cost of `$0.013395`. The paired comparison shows lower context and cost but two correctness regressions and no improvements; see [results/b0-vs-b1-openai-gpt-5-6-luna-smoke](results/b0-vs-b1-openai-gpt-5-6-luna-smoke/README.md).
+| Method | Schema policy | Correct | Accuracy | Semantic mismatch | Abstained | Validator rejection | Execution interruption | Estimated cost |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| [B0](results/b0-openai-gpt-5-6-luna-smoke/README.md) | Full schema | 6 | 30% | 10 | 2 | 0 | 2 | `$0.019454` |
+| [B1](results/b1-openai-gpt-5-6-luna-smoke/README.md) | 1,000-character catalog prefix | 4 | 20% | 7 | 6 | 3 | 0 | `$0.013395` |
+| [B2](results/b2-openai-gpt-5-6-luna-smoke/README.md) | BM25 retrieval | 2 | 10% | 6 | 10 | 2 | 0 | `$0.011538` |
+| [B3](results/b3-openai-gpt-5-6-luna-smoke/README.md) | Dense retrieval | 3 | 15% | 7 | 9 | 1 | 0 | `$0.011297` |
+| [B4](results/b4-openai-gpt-5-6-luna-smoke/README.md) | Hybrid reciprocal-rank fusion | 3 | 15% | 9 | 6 | 1 | 1 | `$0.013090` |
+| [B5](results/b5-openai-gpt-5-6-luna-smoke/README.md) | Hybrid plus local reranking | 2 | 10% | 8 | 8 | 2 | 0 | `$0.010070` |
+| [B6](results/b6-openai-gpt-5-6-luna-smoke/README.md) | B4 plus one bounded repair | 3 | 15% | 9 | 7 | 1 | 0 | `$0.014768` total |
+| [B7](results/b7-openai-gpt-5-6-luna-smoke/README.md) | B4 plus terminal abstention | 3 | 15% | 9 | 8 | 0 | 0 | `$0.013090` reused |
 
-The B2 smoke artifact applies the locked 12-hit BM25 schema-retrieval policy. It records 2 correct results, 6 semantic mismatches, 10 safe abstentions, and 2 validator rejections at an estimated token cost of `$0.011538`. Evaluator-only evidence finds complete required-table coverage on 10 tasks and complete required-column coverage on 8; see [results/b2-openai-gpt-5-6-luna-smoke](results/b2-openai-gpt-5-6-luna-smoke/README.md).
-
-The B3 smoke artifact applies the revision-pinned 12-hit BGE dense-retrieval policy. It records 3 correct results, 7 semantic mismatches, 9 safe abstentions, and 1 validator rejection at an estimated token cost of `$0.011297`. Evaluator-only evidence finds complete required-table coverage on 13 tasks and complete required-column coverage on 9; see [results/b3-openai-gpt-5-6-luna-smoke](results/b3-openai-gpt-5-6-luna-smoke/README.md).
-
-The B4 smoke artifact applies the locked 12-hit reciprocal-rank fusion policy over complete B2 and B3 rankings. It records 3 correct results, 9 semantic mismatches, 6 safe abstentions, 1 validator rejection, and 1 bounded execution interruption at an estimated token cost of `$0.013090`. Evaluator-only evidence finds complete required-table coverage on 14 tasks and complete required-column coverage on 10; see [results/b4-openai-gpt-5-6-luna-smoke](results/b4-openai-gpt-5-6-luna-smoke/README.md).
-
-The B5 smoke artifact reranks up to 48 B4 candidates with the pinned local MiniLM cross-encoder before selecting 12 hits. It records 2 correct results, 8 semantic mismatches, 8 safe abstentions, and 2 validator rejections at an estimated token cost of `$0.010070`. Evaluator-only evidence finds complete required-table coverage on 11 tasks and complete required-column coverage on 8; see [results/b5-openai-gpt-5-6-luna-smoke](results/b5-openai-gpt-5-6-luna-smoke/README.md).
-
-The B6 smoke artifact reuses the committed B4 first pass and applies one repair only to its two validator-or-controlled-execution eligible tasks. It records 3 correct results, 9 semantic mismatches, 7 safe abstentions, and 1 validator rejection. Incremental repair cost is `$0.001678`; total B6 token cost including the reused first pass is `$0.014768`. Correctness is unchanged from B4; see [results/b6-openai-gpt-5-6-luna-smoke](results/b6-openai-gpt-5-6-luna-smoke/README.md).
-
-The B7 smoke artifact reuses the exact B4 first pass and deterministically converts its validator rejection and controlled execution interruption to terminal abstentions. It records 3 correct results, 9 semantic mismatches, and 8 abstentions, with no invalid or execution-failure terminal state. B7 makes no new hosted request and has zero incremental model cost; see [results/b7-openai-gpt-5-6-luna-smoke](results/b7-openai-gpt-5-6-luna-smoke/README.md).
+B1 reduced context size but produced two correctness regressions relative to B0. B2-B5 include evaluator-only schema-evidence reports in their linked artifacts. B6 attempted two eligible repairs without changing correctness. B7 removed the remaining unsafe terminal states while preserving B4 correctness and making no additional model request.
 
 ## Responsible use and limitations
 

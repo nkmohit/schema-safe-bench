@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from schema_safe_bench import __version__
@@ -16,6 +18,23 @@ def test_doctor_command() -> None:
 
 def test_module_entrypoint_guard() -> None:
     assert app.info.help == "Schema-grounded text-to-SQL evaluation."
+
+
+def test_readme_presents_results_without_budget_restrictions() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    lowered = readme.casefold()
+    for prohibited in (
+        "per-run cap",
+        "project spend guard",
+        "budget restriction",
+        "blocked_by_budget",
+        "$5 per run",
+        "$95",
+        "$100",
+    ):
+        assert prohibited not in lowered
+    assert "| Method | Schema policy | Correct | Accuracy |" in readme
+    assert all(f"[B{index}](results/b{index}-" in readme for index in range(8))
 
 
 def test_cache_model_command_reports_pinned_model(monkeypatch) -> None:
