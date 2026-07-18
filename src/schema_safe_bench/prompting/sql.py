@@ -44,6 +44,9 @@ def build_repair_request(
     rejected_sql: str,
     error: str,
     model_name: str,
+    temperature: float = 0.0,
+    max_output_tokens: int = 1000,
+    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] = "none",
 ) -> GenerationRequest:
     user = (
         f"Question:\n{question}\n\nAvailable schema:\n{schema_pack.serialized}"
@@ -56,7 +59,10 @@ def build_repair_request(
             PromptMessage(role="user", content=user),
         ],
         model_name=model_name,
+        temperature=temperature,
+        max_output_tokens=max_output_tokens,
         prompt_version=f"{PROMPT_VERSION}-repair-1",
+        reasoning_effort=reasoning_effort,
     )
 
 

@@ -1,4 +1,10 @@
+run_id: bird-minidev-select-smoke-b6-openai-gpt-5-6-luna
 method_id: B6
+tasks_path: data/raw/bird-minidev/mini_dev_sqlite.json
+databases_root: data/raw/bird-minidev/dev_databases
+manifest_path: data/processed/manifests/bird-minidev-select-smoke.json
+recording_path: data/processed/predictions/b4-openai-gpt-5-6-luna-smoke.json
+output_path: results/b6-openai-gpt-5-6-luna-smoke/trace.jsonl
 schema_context:
   strategy: hybrid
   policy_id: bm25-bge-rrf-schema-documents-v1
@@ -35,6 +41,25 @@ reliability:
   eligibility_policy: validator-or-controlled-execution-v1
   error_policy: normalized-validator-executor-v1
   first_pass_method_id: B4
+  first_pass_config_path: configs/runs/b4-openai-luna-smoke.yaml
+  first_pass_recording_path: data/processed/predictions/b4-openai-gpt-5-6-luna-smoke.json
+  first_pass_trace_path: results/b4-openai-gpt-5-6-luna-smoke/trace.jsonl
+  repair_recording_path: data/processed/predictions/b6-openai-gpt-5-6-luna-repair-smoke.json
+environment_path: .env
+model:
+  provider: openai
+  model_name: gpt-5.6-luna
+  endpoint: responses
+  temperature: 0.0
+  reasoning_effort: none
+  max_output_tokens: 1000
+  store: false
+  timeout_seconds: 120
+  max_retries: 2
+budget:
+  project_limit_usd: 95.0
+  run_limit_usd: 5.0
+  ledger_path: .cache/schema-safe-bench/openai-spend.json
 execution:
   row_limit: 100000
   vm_step_budget: 1000000

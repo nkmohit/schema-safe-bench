@@ -1,0 +1,71 @@
+{
+  "policy_id": "validator-or-controlled-execution-v1",
+  "method_id": "B6",
+  "first_pass": {
+    "method_id": "B4",
+    "configuration": "configs/runs/b4-openai-luna-smoke.yaml",
+    "configuration_sha256": "b537ed105e2ac533a116649ecdd1bba6605e9c282bb0aa21c1cc3585f244da59",
+    "recording": "data/processed/predictions/b4-openai-gpt-5-6-luna-smoke.json",
+    "recording_sha256": "8c2307c2fc805fabf53bb7a474527471f39eca1b3ebe3bfc8d008fe44a09458d",
+    "trace": "results/b4-openai-gpt-5-6-luna-smoke/trace.jsonl",
+    "trace_sha256": "9aa19174584666ad3fefd1af095d74a18f024a9bceee2dfc2a3bb5957de5af68",
+    "reuse_contract": "schema packs, generation requests, response recordings, and candidate SQL are immutable B4 inputs"
+  },
+  "eligibility": {
+    "allowed": [
+      "validator rejection",
+      "controlled SQLite execution error or interruption"
+    ],
+    "excluded": [
+      "ABSTAIN",
+      "successful execution regardless of semantic comparison",
+      "provider failure",
+      "environmental database absence"
+    ],
+    "frozen_eligible_task_ids": [
+      "116",
+      "1185"
+    ],
+    "outcome_independence": "eligibility is computed from first-pass validation and controlled execution only"
+  },
+  "repair": {
+    "maximum_attempts": 1,
+    "stage": "repair-1",
+    "prompt_version": "sqlite-readonly-v1-repair-1",
+    "error_policy": "normalized-validator-executor-v1",
+    "recording": "data/processed/predictions/b6-openai-gpt-5-6-luna-repair-smoke.json",
+    "digest_scope": [
+      "task_id",
+      "stage",
+      "complete generation request"
+    ],
+    "model": "gpt-5.6-luna",
+    "temperature": 0,
+    "reasoning_effort": "none",
+    "max_output_tokens": 1000
+  },
+  "leakage_boundary": {
+    "repair_inputs": [
+      "public question",
+      "committed B4 schema pack",
+      "committed B4 rejected candidate",
+      "normalized validator or controlled-executor error"
+    ],
+    "evaluator_only": [
+      "reference SQL",
+      "reference result",
+      "task evidence",
+      "semantic comparison",
+      "schema-evidence labels"
+    ]
+  },
+  "accounting": "traces and summaries distinguish reused B4 first-pass usage, incremental repair usage, and total B6 usage",
+  "method_config": "configs/methods/b6-hybrid-validator-repair.yaml",
+  "run_config": "configs/runs/b6-openai-luna-smoke.yaml",
+  "manifest": {
+    "path": "data/processed/manifests/bird-minidev-select-smoke.json",
+    "sha256": "2ff3561dd1fc1170bee64209716a1bc1a9e2976a7b7bf9d3e7a1592a0775d375",
+    "tasks": 20,
+    "databases": 10
+  }
+}

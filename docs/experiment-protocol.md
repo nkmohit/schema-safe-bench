@@ -66,6 +66,12 @@ Candidates are ordered by descending raw logit, ascending pre-rerank rank, and a
 
 The model identity, Apache-2.0 license, architecture, immutable revision, input and scoring contract, tokenizer limit, file hashes, dependency versions, local cache requirements, ordering, and reproducibility limits are locked in [`data/provenance/b5-hybrid-reranking.json`](../data/provenance/b5-hybrid-reranking.json). Reference SQL, reference results, task evidence, and evaluator-derived identifiers remain unavailable to retrieval, fusion, reranking, prompt construction, and generation. Schema evidence is computed only after generation.
 
+### B6 validator-and-repair policy
+
+B6 is a controlled extension of B4. It reuses the committed B4 schema packs, first-pass requests, response recording, and candidate SQL exactly. A task is eligible for one `repair-1` request only when the first-pass validator rejects the candidate or accepted SQL reaches a controlled SQLite error or interruption. `ABSTAIN`, successful execution, provider failure, and environmental database absence are ineligible. Semantic equivalence and every other evaluator output are unavailable when eligibility is decided.
+
+The repair request receives only the public question, unchanged B4 schema pack, rejected candidate, and a normalized validator or executor error category. It uses the same Luna model settings as B4. Its digest binds task ID, stage, and the complete request, and its response is stored in a separate repair recording. Traces preserve both generations; summaries distinguish reused first-pass usage, incremental repair usage, and total B6 usage. The locked policy and pre-outcome eligible task set are recorded in [`data/provenance/b6-validator-repair.json`](../data/provenance/b6-validator-repair.json).
+
 ## Required records
 
 Each task trace records:

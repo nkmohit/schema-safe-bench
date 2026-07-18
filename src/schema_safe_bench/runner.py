@@ -17,28 +17,42 @@ from schema_safe_bench.generation import (
     OpenAIResponsesGenerator,
     SpendLedger,
     load_recording,
+    load_repair_recording,
     maximum_request_cost,
+    recorded_repair_response,
     recorded_response,
+    repair_request_sha256,
     request_sha256,
     response_cost,
     save_record,
+    save_repair_record,
 )
 from schema_safe_bench.models import (
     AuditTrace,
     BenchmarkTask,
     Catalog,
     ExecutionLimits,
+    ExecutionResult,
     GenerationRequest,
     GenerationResponse,
     HostedRunConfig,
     Prediction,
+    RepairAccounting,
+    RepairAudit,
+    RepairCause,
     RetrievalMetadata,
     RunSummary,
     SchemaPack,
     SmokeRunConfig,
     TaskManifest,
+    UsageAccounting,
+    ValidationResult,
 )
-from schema_safe_bench.prompting import build_generation_request, extract_candidate_sql
+from schema_safe_bench.prompting import (
+    build_generation_request,
+    build_repair_request,
+    extract_candidate_sql,
+)
 from schema_safe_bench.reporting import write_run_artifacts
 from schema_safe_bench.retrieval import (
     BM25Retriever,
@@ -171,7 +185,7 @@ def _evaluate_prediction(
 
 
 def _summarize(run_id: str, method_id: str, traces: list[AuditTrace]) -> RunSummary:
-    generations = [trace.generation for trace in traces if trace.generation]
+    generations = _accounted_generations(traces)
     return RunSummary(
         run_id=run_id,
         method_id=method_id,
@@ -188,6 +202,65 @@ def _summarize(run_id: str, method_id: str, traces: list[AuditTrace]) -> RunSumm
             sum(response.estimated_cost_usd or 0.0 for response in generations), 8
         ),
     )
+
+
+def _accounted_generations(traces: list[AuditTrace]) -> list[GenerationResponse]:
+    generations: list[GenerationResponse] = []
+    for trace in traces:
+        if trace.repair:
+            generations.append(trace.repair.first_pass_generation)
+            if trace.repair.repair_generation:
+                generations.append(trace.repair.repair_generation)
+        elif trace.generation:
+            generations.append(trace.generation)
+    return generations
+
+
+def _usage(generations: list[GenerationResponse]) -> UsageAccounting:
+    return UsageAccounting(
+        requests=len(generations),
+        input_tokens=sum(item.input_tokens or 0 for item in generations),
+        output_tokens=sum(item.output_tokens or 0 for item in generations),
+        estimated_cost_usd=round(sum(item.estimated_cost_usd or 0.0 for item in generations), 8),
+    )
+
+
+def _repair_cause(validation: ValidationResult, execution: ExecutionResult) -> RepairCause | None:
+    # Eligibility is intentionally derived before reference execution or result comparison.
+    if validation.status == "invalid":
+        issues = sorted(
+            validation.issues,
+            key=lambda item: (item.code, item.identifier or ""),
+        )
+        identifiers = sorted({item.identifier for item in issues if item.identifier})
+        codes = sorted({item.code for item in issues})
+        normalized = "validation:" + ",".join(
+            f"{item.code}({item.identifier})" if item.identifier else item.code for item in issues
+        )
+        return RepairCause(
+            trigger="validation",
+            code="+".join(codes),
+            identifiers=identifiers,
+            normalized_error=normalized,
+        )
+    controlled_errors = {
+        "query_budget_exceeded",
+        "sqlite_operational_error",
+        "sqlite_database_error",
+    }
+    if (
+        validation.status == "valid"
+        and execution.status in {"error", "interrupted"}
+        and execution.error_type in controlled_errors
+    ):
+        assert execution.error_type is not None
+        code = execution.error_type
+        return RepairCause(
+            trigger="execution",
+            code=code,
+            normalized_error=f"execution:{code}",
+        )
+    return None
 
 
 def run_offline_smoke(config: SmokeRunConfig) -> tuple[list[AuditTrace], RunSummary]:
@@ -228,6 +301,8 @@ def run_hosted_smoke(
     summary_path = config.output_path.with_suffix(".summary.json")
     if config.output_path.exists() or summary_path.exists():
         raise FileExistsError(f"Run output already exists: {config.output_path} or {summary_path}")
+    if config.method_id == "B6":
+        return _run_b6_repair_smoke(config, replay_only=replay_only)
     tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
     manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
     recording = load_recording(config.recording_path, model_name=config.model.model_name)
@@ -346,6 +421,196 @@ def run_hosted_smoke(
             )
         )
     return traces, _summarize(config.run_id, config.method_id, traces)
+
+
+def _run_b6_repair_smoke(
+    config: HostedRunConfig, *, replay_only: bool
+) -> tuple[list[AuditTrace], RunSummary]:
+    policy = config.reliability
+    assert policy is not None and config.schema_context is not None
+    first_config = load_hosted_run_config(policy.first_pass_config_path)
+    if first_config.method_id != "B4":
+        raise ValueError("B6 first-pass configuration must be B4")
+    controlled_pairs = (
+        (first_config.tasks_path, config.tasks_path, "tasks"),
+        (first_config.databases_root, config.databases_root, "database root"),
+        (first_config.manifest_path, config.manifest_path, "manifest"),
+        (first_config.recording_path, config.recording_path, "first-pass recording"),
+        (first_config.recording_path, policy.first_pass_recording_path, "recording"),
+        (first_config.schema_context, config.schema_context, "schema context"),
+        (first_config.model, config.model, "model"),
+        (first_config.execution, config.execution, "execution limits"),
+    )
+    for first_value, b6_value, label in controlled_pairs:
+        if first_value != b6_value:
+            raise ValueError(f"B6 {label} must exactly match its B4 first pass")
+
+    tasks = {task.task_id: task for task in load_bird_tasks(config.tasks_path)}
+    manifest = TaskManifest.model_validate_json(config.manifest_path.read_text(encoding="utf-8"))
+    first_traces = [
+        AuditTrace.model_validate_json(line)
+        for line in policy.first_pass_trace_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    first_by_task = {trace.task_id: trace for trace in first_traces}
+    if len(first_by_task) != len(first_traces) or set(first_by_task) != set(manifest.task_ids):
+        raise ValueError("B4 first-pass trace must contain exactly the manifest tasks")
+    first_recording = load_recording(
+        policy.first_pass_recording_path, model_name=config.model.model_name
+    )
+    first_records = {record.task_id: record for record in first_recording.records}
+    if set(first_records) != set(manifest.task_ids):
+        raise ValueError("B4 first-pass recording must contain exactly the manifest tasks")
+
+    repair_recording = load_repair_recording(
+        policy.repair_recording_path, model_name=config.model.model_name
+    )
+    configuration_sha256 = _configuration_sha256(config)
+    software_revision = _software_revision()
+    prepared = []
+    eligible_ids: set[str] = set()
+    reservations = []
+    for task_id in manifest.task_ids:
+        task = tasks[task_id]
+        first = first_by_task[task_id]
+        record = first_records[task_id]
+        if first.method_id != "B4" or first.request_sha256 != record.request_sha256:
+            raise ValueError(f"B4 provenance mismatch for task {task_id!r}")
+        if first.generation is None or first.schema_pack is None:
+            raise ValueError(f"B4 trace lacks generation provenance for task {task_id!r}")
+        if first.generation.model_dump(exclude={"replayed"}) != record.response.model_dump(
+            exclude={"replayed"}
+        ):
+            raise ValueError(f"B4 response mismatch for task {task_id!r}")
+        database = find_database(config.databases_root, task.db_id)
+        catalog = extract_catalog(database, db_id=task.db_id)
+        validator = SqlValidator(catalog)
+        validation = validator.validate(first.candidate_sql)
+        execution = execute_read_only(database, validation, limits=config.execution)
+        cause = _repair_cause(validation, execution)
+        request = replay = digest = None
+        if cause is not None:
+            eligible_ids.add(task_id)
+            request = build_repair_request(
+                question=task.question,
+                schema_pack=first.schema_pack,
+                rejected_sql=first.candidate_sql,
+                error=cause.normalized_error,
+                model_name=config.model.model_name,
+                temperature=config.model.temperature,
+                max_output_tokens=config.model.max_output_tokens,
+                reasoning_effort=config.model.reasoning_effort,
+            )
+            digest = repair_request_sha256(task_id, "repair-1", request)
+            replay = recorded_repair_response(
+                repair_recording,
+                task_id=task_id,
+                stage="repair-1",
+                expected_request_sha256=digest,
+            )
+            if replay is None:
+                reservations.append(maximum_request_cost(request))
+        prepared.append((task, database, catalog, first, cause, request, replay, digest))
+
+    recorded_ids = {record.task_id for record in repair_recording.records}
+    if not recorded_ids <= eligible_ids:
+        raise ValueError("repair recording contains ineligible task IDs")
+    if replay_only and reservations:
+        raise RuntimeError("replay-only run is missing recorded repair responses")
+
+    generator = ledger = None
+    if reservations:
+        try:
+            from dotenv import load_dotenv
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "OpenAI support is not installed; run `uv sync --extra openai --dev`"
+            ) from exc
+        if os.name == "posix" and config.environment_path.exists():
+            permissions = config.environment_path.stat().st_mode & 0o077
+            if permissions:
+                raise RuntimeError("environment file must be owner-only; run `chmod 600 .env`")
+        load_dotenv(config.environment_path, override=False)
+        ledger = SpendLedger(config.budget)
+        ledger.authorize_run(reservations)
+        generator = OpenAIResponsesGenerator.from_environment(config.model)
+
+    traces: list[AuditTrace] = []
+    for task, database, catalog, first, cause, request, replay, digest in prepared:
+        response = replay
+        if cause is not None and response is None:
+            assert generator is not None and ledger is not None and request is not None
+            assert digest is not None
+            response = generator.generate(task.task_id, request)
+            cost = response_cost(response)
+            response = response.model_copy(update={"estimated_cost_usd": float(cost)})
+            ledger.record(task_id=task.task_id, request_digest=digest, cost=cost)
+            save_repair_record(
+                repair_recording,
+                policy.repair_recording_path,
+                task_id=task.task_id,
+                stage="repair-1",
+                digest=digest,
+                response=response,
+            )
+        final_response = response or first.generation
+        final_sql = extract_candidate_sql(final_response.raw_output)
+        trace = _evaluate_prediction(
+            run_id=config.run_id,
+            method_id=config.method_id,
+            configuration_sha256=configuration_sha256,
+            software_revision=software_revision,
+            task=task,
+            prediction=Prediction(
+                task_id=task.task_id,
+                sql=final_sql,
+                raw_output=final_response.raw_output,
+                request_sha256=digest or first.request_sha256,
+                generation=final_response,
+                schema_pack=first.schema_pack,
+            ),
+            database=database,
+            catalog=catalog,
+            execution_limits=config.execution,
+        )
+        trace = trace.model_copy(
+            update={
+                "repair_count": int(response is not None),
+                "repair": RepairAudit(
+                    eligible=cause is not None,
+                    eligibility_policy=policy.eligibility_policy,
+                    first_pass_request_sha256=first.request_sha256,
+                    first_pass_candidate_sql=first.candidate_sql,
+                    first_pass_generation=first.generation,
+                    cause=cause,
+                    attempted=response is not None,
+                    stage="repair-1" if response is not None else None,
+                    repair_request_sha256=digest,
+                    repair_generation=response,
+                ),
+            }
+        )
+        traces.append(trace)
+
+    first_generations = [trace.repair.first_pass_generation for trace in traces if trace.repair]
+    repair_generations = [
+        trace.repair.repair_generation
+        for trace in traces
+        if trace.repair and trace.repair.repair_generation
+    ]
+    total_generations = first_generations + repair_generations
+    summary = _summarize(config.run_id, config.method_id, traces).model_copy(
+        update={
+            "repair_accounting": RepairAccounting(
+                eligible=len(eligible_ids),
+                attempted=len(repair_generations),
+                first_pass=_usage(first_generations),
+                incremental_repair=_usage(repair_generations),
+                total=_usage(total_generations),
+            )
+        }
+    )
+    return traces, summary
 
 
 def _hosted_schema_pack(

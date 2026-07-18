@@ -42,7 +42,14 @@ def _metrics(
 ) -> ComparedRunMetrics:
     outcomes = Counter(_outcome(trace) for trace in traces)
     correct = outcomes.pop("correct", 0)
-    generations = [trace.generation for trace in traces if trace.generation]
+    generations = []
+    for trace in traces:
+        if trace.repair:
+            generations.append(trace.repair.first_pass_generation)
+            if trace.repair.repair_generation:
+                generations.append(trace.repair.repair_generation)
+        elif trace.generation:
+            generations.append(trace.generation)
     run_id = _single_value({trace.run_id for trace in traces}, "run ID")
     method_id = _single_value({trace.method_id for trace in traces}, "method ID")
     configuration_sha256 = _single_value(

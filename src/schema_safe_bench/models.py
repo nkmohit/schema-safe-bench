@@ -352,6 +352,42 @@ class GenerationRecording(StrictModel):
     records: list[GenerationRecord] = Field(default_factory=list)
 
 
+class RepairRecord(StrictModel):
+    task_id: str
+    stage: Literal["repair-1"] = "repair-1"
+    request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    response: GenerationResponse
+
+
+class RepairRecording(StrictModel):
+    format_version: Literal["1"] = "1"
+    provider: Literal["openai"] = "openai"
+    requested_model_name: str
+    stage: Literal["repair-1"] = "repair-1"
+    records: list[RepairRecord] = Field(default_factory=list)
+
+
+class RepairCause(StrictModel):
+    trigger: Literal["validation", "execution"]
+    code: str
+    identifiers: list[str] = Field(default_factory=list)
+    normalized_error: str
+
+
+class RepairAudit(StrictModel):
+    eligible: bool
+    eligibility_policy: Literal["validator-or-controlled-execution-v1"]
+    first_pass_method_id: Literal["B4"] = "B4"
+    first_pass_request_sha256: str
+    first_pass_candidate_sql: str
+    first_pass_generation: GenerationResponse
+    cause: RepairCause | None = None
+    attempted: bool = False
+    stage: Literal["repair-1"] | None = None
+    repair_request_sha256: str | None = None
+    repair_generation: GenerationResponse | None = None
+
+
 class Prediction(StrictModel):
     task_id: str
     sql: str
@@ -376,6 +412,7 @@ class AuditTrace(StrictModel):
     schema_evidence: SchemaEvidenceMetrics | None = None
     generation: GenerationResponse | None = None
     repair_count: int = Field(default=0, ge=0, le=1)
+    repair: RepairAudit | None = Field(default=None, exclude_if=lambda value: value is None)
     validation: ValidationResult
     execution: ExecutionResult
     reference_execution: ExecutionResult
@@ -394,6 +431,24 @@ class RunSummary(StrictModel):
     input_tokens: int = 0
     output_tokens: int = 0
     estimated_cost_usd: float = 0.0
+    repair_accounting: "RepairAccounting | None" = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+
+class UsageAccounting(StrictModel):
+    requests: int = Field(ge=0)
+    input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    estimated_cost_usd: float = Field(ge=0)
+
+
+class RepairAccounting(StrictModel):
+    eligible: int = Field(ge=0)
+    attempted: int = Field(ge=0)
+    first_pass: UsageAccounting
+    incremental_repair: UsageAccounting
+    total: UsageAccounting
 
 
 class SchemaEvidenceAggregate(StrictModel):
@@ -684,15 +739,33 @@ class RerankerConfig(StrictModel):
         return value.strip()
 
 
+class RepairPolicyConfig(StrictModel):
+    validation_enabled: Literal[True] = Field(default=True, alias="validate")
+    max_repairs: Literal[1] = 1
+    allow_abstain: Literal[True] = True
+    eligibility_policy: Literal["validator-or-controlled-execution-v1"] = (
+        "validator-or-controlled-execution-v1"
+    )
+    error_policy: Literal["normalized-validator-executor-v1"] = "normalized-validator-executor-v1"
+    first_pass_method_id: Literal["B4"] = "B4"
+    first_pass_config_path: Path
+    first_pass_recording_path: Path
+    first_pass_trace_path: Path
+    repair_recording_path: Path
+
+
 class HostedRunConfig(StrictModel):
     run_id: str
-    method_id: Literal["B0", "B1", "B2", "B3", "B4", "B5"]
+    method_id: Literal["B0", "B1", "B2", "B3", "B4", "B5", "B6"]
     tasks_path: Path
     databases_root: Path
     manifest_path: Path
     recording_path: Path
     output_path: Path
     schema_context: HostedSchemaContextConfig | None = None
+    reliability: RepairPolicyConfig | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     environment_path: Path = Path(".env")
     model: HostedModelConfig = Field(default_factory=HostedModelConfig)
     budget: SpendBudgetConfig = Field(default_factory=SpendBudgetConfig)
@@ -724,6 +797,13 @@ class HostedRunConfig(StrictModel):
             not self.schema_context or self.schema_context.strategy != "hybrid_rerank"
         ):
             raise ValueError("B5 requires hybrid-rerank schema context")
+        if self.method_id == "B6":
+            if not self.schema_context or self.schema_context.strategy != "hybrid":
+                raise ValueError("B6 requires hybrid schema context")
+            if self.reliability is None:
+                raise ValueError("B6 requires a repair reliability policy")
+        elif self.reliability is not None:
+            raise ValueError("only B6 can define a repair reliability policy")
         return self
 
 
