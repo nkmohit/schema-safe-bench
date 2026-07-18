@@ -97,7 +97,10 @@
     "reranked_candidates": 847,
     "selected_hits": 240,
     "schema_chars_total": 12985,
-    "database_embedding_caches": 10
+    "database_embedding_caches": 10,
+    "ordered_schema_packs_sha256": "4e63da4fe763750ee0d1224bdfaa18384aea321695b05cbc133dd96495927afd",
+    "independent_process_digests_matched": true,
+    "implementation_revision": "793b615134274d3f2b782920065a6bf192396b28"
   },
   "implementation": "src/schema_safe_bench/retrieval/reranking.py",
   "method_config": "configs/methods/b5-hybrid-reranking.yaml",

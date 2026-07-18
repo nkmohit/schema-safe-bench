@@ -162,11 +162,27 @@ The committed B4 run links every trace to implementation revision `1dee8779062d1
 
 Every B4 trace preserves its 12 fused hits, raw BM25 and cosine scores, component ranks, reciprocal-rank contributions, fused scores, embedding digests, selected identifiers, serialized schema pack, request digest, generation metadata, and evaluator outcomes. The paired B0-through-B3 comparisons are linked from the [B4 result](../results/b4-openai-gpt-5-6-luna-smoke/README.md).
 
+The committed B5 run links every trace to implementation revision `793b615134274d3f2b782920065a6bf192396b28` and records:
+
+| Record | Value |
+|---|---:|
+| Tasks | 20 |
+| Correct | 2 |
+| Semantic mismatches | 8 |
+| Safe abstentions | 8 |
+| Validator rejections | 2 |
+| Execution errors or interruptions | 0 |
+| Input tokens | 5366 |
+| Output tokens | 784 |
+| Estimated token cost | `$0.010070` |
+
+Every B5 trace preserves up to 48 reranked candidates, all B4 component scores, ranks, and reciprocal-rank contributions, raw cross-encoder logits, pre- and post-rerank ranks, selected status, both local model revisions and digests, serialized schema pack, request digest, generation metadata, and evaluator outcomes. The paired B0-through-B4 comparisons are linked from the [B5 result](../results/b5-openai-gpt-5-6-luna-smoke/README.md).
+
 ## Limitations
 
 - Token cost is calculated from API-reported usage and the checked Luna price table; it does not include taxes, account credits, or unrelated provider usage.
 - An interrupted provider request can still be billable even when no complete response is returned. The margin between the local ceiling and the project maximum is retained for this class of uncertainty.
 - Temperature zero and reasoning effort `none` reduce sampling and reasoning cost, but hosted output is not claimed to be bit-for-bit deterministic. The committed recording is the deterministic replay source.
 - The current model catalog exposes `gpt-5.6-luna` as the available identifier and the API returned that same identifier; no distinct dated Luna snapshot was available to pin for this run.
-- The local B3 embedding snapshot is revision-pinned and digest-checked, but exact floating-point reproducibility is guaranteed only for the documented CPU, dependency, precision, and thread settings.
+- The local B3-through-B5 embedding snapshot and B5 reranker snapshot are revision-pinned and digest-checked, but exact floating-point reproducibility is guaranteed only for the documented CPU, dependency, precision, and thread settings.
 - The 20-task run is a smoke baseline, not a complete BIRD benchmark result or a cross-model comparison.

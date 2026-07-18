@@ -46,6 +46,11 @@ def test_b5_reranking_policy_and_controlled_variables_are_locked() -> None:
         "selected_hits": 240,
         "schema_chars_total": 12985,
         "database_embedding_caches": 10,
+        "ordered_schema_packs_sha256": (
+            "4e63da4fe763750ee0d1224bdfaa18384aea321695b05cbc133dd96495927afd"
+        ),
+        "independent_process_digests_matched": True,
+        "implementation_revision": "793b615134274d3f2b782920065a6bf192396b28",
     }
     for name, digest in provenance["reranker"]["files"].items():
         assert len(digest) == 64, name
