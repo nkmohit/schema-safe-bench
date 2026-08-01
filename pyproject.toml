@@ -23,7 +23,7 @@ dependencies = [
   "rank-bm25>=0.2.2,<0.3",
   "rich>=13.9,<15",
   "sqlglot>=26,<28",
-  "typer>=0.15,<1",
+  "typer>=0.27.0,<1",
 ]
 
 [project.urls]
