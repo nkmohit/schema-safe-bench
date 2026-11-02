@@ -96,6 +96,7 @@ def test_repair_recording_digest_is_stage_bound(tmp_path: Path) -> None:
     assert replay and replay.replayed
 
 
+@pytest.mark.usefixtures("bird_minidev_assets")
 def test_b6_real_first_pass_freezes_two_eligible_tasks(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
