@@ -106,6 +106,7 @@ def test_evaluator_only_mutation_cannot_change_abstention_decision() -> None:
     )
 
 
+@pytest.mark.usefixtures("bird_minidev_assets")
 def test_b7_real_b4_inputs_freeze_exact_abstention_decisions(tmp_path: Path) -> None:
     config = load_hosted_run_config(B7_CONFIG).model_copy(
         update={"output_path": tmp_path / "trace.jsonl"}

@@ -184,11 +184,10 @@ def test_evaluator_only_task_mutation_cannot_change_generation_request() -> None
     assert before == after
 
 
+@pytest.mark.usefixtures("bird_minidev_assets")
 def test_freeze_artifacts_regenerate_from_pinned_local_assets() -> None:
     freeze = load_freeze_config(FREEZE_CONFIG)
     tasks_path = ROOT / freeze.tasks_path
-    if not tasks_path.exists():
-        pytest.skip("public raw benchmark assets are intentionally not committed")
     manifest, exclusions, _ = build_full_evaluation_population(
         tasks_path, dataset_revision=freeze.dataset_revision
     )
